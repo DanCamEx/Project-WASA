@@ -1,0 +1,174 @@
+openapi: 3.0.0
+info:
+  title: WASAText
+  version: 0.0.1
+paths: 
+  /users/{userId}:
+    put:
+      summary: Update the username of the authenticated user
+      operationId: setMyUserName
+      parameters: 
+        - $ref: "#/components/parameters/userId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: The user name.
+                  example: Mario
+                  pattern: "^.*?$"
+                  minLength: 3
+                  maxLength: 16
+      responses:
+        "200":
+          description: Username updated successfully
+  /users/{userId}/chats:
+    get:
+      summary: Get all chats of the authenticated user
+      operationId: getMyConversations
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "200":
+          description: List of chats in JSON format
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - chatid
+                    - type
+                    - name
+                    - latestMessage
+                    - photo
+                  properties:
+                    chatId: 
+                      type: string
+                      description: The chat ID.
+                      example: c12
+                      pattern: "^c[0-9]+$"
+                    type:
+                      type: string
+                      description: The chat type. Must be private or a group.
+                      enum: [group, private]
+                    name: 
+                      type: string
+                      description: The chat name.
+                      example: Luigi98
+                    latestMessage:
+                      type: object
+                      description: | 
+                        The latest message sent with its creation date. 
+                        Must be a text or a photo icon.
+                      oneOf:
+                       - required: [textMessage]
+                       - required: [photoMessage]
+                      properties:
+                        textMessage:
+                          type: string
+                          example: Hello, how are u?
+                        photoMessage:
+                          type: string
+                          format: uri
+                          example: http://example.com/images/icon.png
+                        createdAt:
+                          type: string
+                          format: date-time
+                          example: 2025-11-03T17:30:00+01:00
+                    photo:
+                      type: string
+                      format: uri
+                      example: http://example.com/images/photo.png
+  /users/{userId}/chats/{chatId}:
+    get:
+      summary: Get specified chat of the authenticated user
+      operationId: getConversation
+      parameters:
+        - $ref: "#/components/parameters/userId"
+        - $ref: "#/components/parameters/chatId"
+      responses:
+        "200":
+          description: All the messages inside the specified chat of the user
+          content:
+            application/json:
+                schema:
+                  type: array
+                  items:
+                    required:
+                      - user
+                      - messageContent
+                      - timeStamp
+                    type: object
+                    properties:
+                      user: 
+                        type: string
+                        description: The user name who sent the message.
+                        example: Luigi74
+                      messageContent:
+                        type: object
+                        description: | 
+                          The message content sent with its creation date. 
+                          Must be a text or an image.
+                        oneOf:
+                         - required: [textMessage]
+                         - required: [imageMessage]
+                        properties:
+                          textMessage:
+                            type: string
+                            example: Hello, i'm under the water
+                          imageMessage:
+                            type: string
+                            format: uri
+                            example: http://example.com/images/image.png
+                      timeStamp:
+                        type: string
+                        format: date-time
+                        example: 2025-11-03T17:30:00+01:00
+                      reactions:
+                        type: array
+                        items:
+                          required:
+                            - user
+                            - emoji
+                          type: object
+                          properties:
+                            user:
+                              type: string
+                              description: The user name who reacted the message.
+                              example: Wario88
+                            emoji:
+                              type: string
+                              description: The emoji used for reacting.
+                              example: 🙂
+                      status:
+                        type: string
+                        description: The message status, which can be read or just received.
+                        enum: [✓✓, ✓]
+                    
+                      
+components:
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        description: The user ID.
+        example: u5
+        pattern: "^u[0-9]+$"
+    chatId:
+      name: chatId
+      in: path
+      required: true
+      schema: 
+        type: string
+        description: The chat ID.
+        example: c32
+        pattern: "^c[0-9]+$"
