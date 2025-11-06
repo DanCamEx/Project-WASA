@@ -1,174 +1,214 @@
-openapi: 3.0.0
+oopenapi: 3.0.4
 info:
   title: WASAText
-  version: 0.0.1
+  version: 0.0.2
+security: 
+  - userAuth: []
 paths: 
+  /session:
+    post:
+      tags: ["login"]
+      summary: Logs in the user
+      description: |-
+        If the user does not exist, it will be created,
+        and an identifier is returned.
+        If the user exists, the user identifier is returned.
+      operationId: doLogin
+      security: []
+      requestBody:
+        $ref: "#/components/requestBodies/usernameBody"
+      responses:
+        '201':
+          description: User log-in action successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  identifier:
+                    type: integer
+                    example: "46327"
   /users/{userId}:
-    put:
-      summary: Update the username of the authenticated user
+    patch:
+      tags: ["user"]
+      summary: Update user name.
       operationId: setMyUserName
       parameters: 
         - $ref: "#/components/parameters/userId"
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                  description: The user name.
-                  example: Mario
-                  pattern: "^.*?$"
-                  minLength: 3
-                  maxLength: 16
+        $ref: "#/components/requestBodies/usernameBody"
       responses:
         "200":
           description: Username updated successfully
-  /users/{userId}/chats:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /chats:
     get:
-      summary: Get all chats of the authenticated user
+      summary: See all chats of the user
       operationId: getMyConversations
       parameters:
         - $ref: "#/components/parameters/userId"
       responses:
         "200":
-          description: List of chats in JSON format
+          description: List of chats previews in JSON format
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  required:
-                    - chatid
-                    - type
-                    - name
-                    - latestMessage
-                    - photo
-                  properties:
-                    chatId: 
-                      type: string
-                      description: The chat ID.
-                      example: c12
-                      pattern: "^c[0-9]+$"
-                    type:
-                      type: string
-                      description: The chat type. Must be private or a group.
-                      enum: [group, private]
-                    name: 
-                      type: string
-                      description: The chat name.
-                      example: Luigi98
-                    latestMessage:
-                      type: object
-                      description: | 
-                        The latest message sent with its creation date. 
-                        Must be a text or a photo icon.
-                      oneOf:
-                       - required: [textMessage]
-                       - required: [photoMessage]
-                      properties:
-                        textMessage:
-                          type: string
-                          example: Hello, how are u?
-                        photoMessage:
-                          type: string
-                          format: uri
-                          example: http://example.com/images/icon.png
-                        createdAt:
-                          type: string
-                          format: date-time
-                          example: 2025-11-03T17:30:00+01:00
-                    photo:
-                      type: string
-                      format: uri
-                      example: http://example.com/images/photo.png
-  /users/{userId}/chats/{chatId}:
+                  $ref: "#/components/schemas/ChatPreview"
+  /chats/{chatId}/messages:
+    post:
+      summary: Send a new message.
+      operationId: sendMessage
+      parameters:
+        - $ref: "#/components/parameters/chatId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Message"
+      responses:
+        "201":
+          description: Message created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /chats/{chatId}:
     get:
-      summary: Get specified chat of the authenticated user
+      summary: See chat details.
       operationId: getConversation
       parameters:
-        - $ref: "#/components/parameters/userId"
         - $ref: "#/components/parameters/chatId"
       responses:
         "200":
-          description: All the messages inside the specified chat of the user
+          description: All the details of the chat, like its partecipants, its image...
           content:
             application/json:
                 schema:
-                  type: array
-                  items:
-                    required:
-                      - user
-                      - messageContent
-                      - timeStamp
-                    type: object
-                    properties:
-                      user: 
-                        type: string
-                        description: The user name who sent the message.
-                        example: Luigi74
-                      messageContent:
-                        type: object
-                        description: | 
-                          The message content sent with its creation date. 
-                          Must be a text or an image.
-                        oneOf:
-                         - required: [textMessage]
-                         - required: [imageMessage]
-                        properties:
-                          textMessage:
-                            type: string
-                            example: Hello, i'm under the water
-                          imageMessage:
-                            type: string
-                            format: uri
-                            example: http://example.com/images/image.png
-                      timeStamp:
-                        type: string
-                        format: date-time
-                        example: 2025-11-03T17:30:00+01:00
-                      reactions:
-                        type: array
-                        items:
-                          required:
-                            - user
-                            - emoji
-                          type: object
-                          properties:
-                            user:
-                              type: string
-                              description: The user name who reacted the message.
-                              example: Wario88
-                            emoji:
-                              type: string
-                              description: The emoji used for reacting.
-                              example: 🙂
-                      status:
-                        type: string
-                        description: The message status, which can be read or just received.
-                        enum: [✓✓, ✓]
-                    
-                      
+                  $ref: "#/components/schemas/Chat"
 components:
+  schemas:
+    User:
+      type: object
+      required: [id]
+      properties:
+        id: 
+          type: integer
+          format: int64
+          example: 7
+        username:
+          type: string
+          example: Mario
+          minLength: 3
+          maxLength: 16
+        image:
+        # TODO: capire come definire l'immagine nell'API
+          type: string
+    Chat:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 11
+        name:
+          type: string
+          example: Gruppo Calcio
+        partecipants:
+              type: array
+              items:
+                $ref: "#/components/schemas/User"
+        image:
+          type: string
+        # TODO: capire come definire l'immagine nell'API
+        type:
+          type: string
+          enum: [group, direct]
+    ChatPreview:
+      allOf:
+        - $ref: "#/components/schemas/Chat"
+        - type: object
+          properties:
+            latestMessage:
+              $ref: "#/components/schemas/Message"
+              # TODO: Se il messaggio è un'immagine voglio un'icona. Da implementare!
+    Message:
+      type: object
+      required: [id, sender, content, timeStamp, status]
+      properties:
+        id: 
+          type: integer
+          format: int64
+          example: 33
+        sender:
+          $ref: "#/components/schemas/User"
+        content:
+          type: string
+          example: Hello! How are you?
+          # TODO: capire come gestire l'API per mandare una foto tramite messaggio
+        timeStamp:
+          type: string
+          format: date-time
+          example: 2025-11-03T17:30:00+01:00
+        comment:
+          type: array
+          items:
+            type: object
+            properties:
+              reacter:
+                $ref: "#/components/schemas/User"
+              emoji:
+                type: string
+                example: 😋
+        status:
+          type: string
+          description: Represents the message status, ✓ means *received*, ✓✓ means *read*
+          enum: [✓, ✓✓]
+        isForwarded:
+          type: boolean
+    UsernameRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Maria
+          pattern: 'ˆ.*?$'
+          minLength: 3
+          maxLength: 16
   parameters:
     userId:
-      name: userId
       in: path
-      required: true
+      name: userId
       schema:
         type: string
         description: The user ID.
         example: u5
         pattern: "^u[0-9]+$"
-    chatId:
-      name: chatId
-      in: path
       required: true
+    chatId:
+      in: path
+      name: chatId
       schema: 
         type: string
         description: The chat ID.
         example: c32
         pattern: "^c[0-9]+$"
+      required: true
+  requestBodies:
+    usernameBody:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsernameRequest"
+          required: true
+  securitySchemes:
+      userAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: string
