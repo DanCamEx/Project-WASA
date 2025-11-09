@@ -1,7 +1,7 @@
 openapi: 3.0.4
 info:
   title: WASAText
-  version: 0.0.3
+  version: 0.0.4
 security: 
   - userAuth: []
 tags:
@@ -46,14 +46,12 @@ paths:
                 properties:
                   identifier:
                     $ref: "#/components/parameters/userId"
-  /users/{userId}:
+  /users/me:
     patch:
       tags: [user]
-      summary: Update username.
-      description: Change the logged in username with a new one.
+      summary: Updates username.
+      description: Changes the logged in username with a new one.
       operationId: setMyUserName
-      parameters: 
-        - $ref: "#/components/parameters/userId"
       requestBody:
         content:
           application/json:
@@ -73,17 +71,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
-  /users/{userId}/conversations:
+  /users/me/conversations:
     get:
       tags: [user]
-      summary: See all of the user conversations.
+      summary: Gives all of the user conversations.
       description: |-
         Get a preview of all the user conversations. This preview includes 
         every attribute that a normal conversation has with the exception that 
         not all messages are obtained, just the latest one.
       operationId: getMyConversations
-      parameters:
-        - $ref: "#/components/parameters/userId"
       responses:
         "200":
           description: Successfull operation
@@ -96,10 +92,31 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/ConversationPreview"
-  /conversations/{conversationId}:
+  /users/me/photo:
+    patch:
+      tags: [user]
+      summary: Updates user profile image.
+      operationId: setMyPhoto
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /conversations/{id}:
     get:
       tags: [conversation]
-      summary: See conversation details.
+      summary: Gives conversation details.
       operationId: getConversationDetails
       parameters:
         - $ref: "#/components/parameters/conversationId"
@@ -110,10 +127,54 @@ paths:
             application/json:
                 schema:
                   $ref: "#/components/schemas/Conversation"
-  /conversations/{conversationId}/messages:
+    patch:
+      tags: [conversation]
+      summary: Updates group name.
+      operationId: setGroupName
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Gruppo Università
+                  pattern: '^.*?$'
+                  minLength: 3
+                  maxLength: 16
+      responses:
+        "204":
+          description: Group name updated successfully
+  /conversations/{id}/photo:
+    patch:
+      tags: [conversation]
+      summary: Updates group profile image.
+      operationId: setGroupPhoto
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+  /conversations/{id}/messages:
     get:
       tags: [conversation]
-      summary: See all messages of a conversation.
+      summary: Gives all messages of a conversation.
       operationId: getConversation
       parameters:
         - $ref: "#/components/parameters/conversationId"
@@ -131,7 +192,7 @@ paths:
                         $ref: "#/components/schemas/Message"
     post:
       tags: [conversation]
-      summary: Send a new message in a conversation.
+      summary: Sends a new message in a conversation.
       operationId: sendMessage
       parameters:
         - $ref: "#/components/parameters/conversationId"
@@ -142,15 +203,47 @@ paths:
               $ref: "#/components/schemas/Message"
       responses:
         "201":
-          description: Message created.
+          description: Message created successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
+  /conversations/{id}/partecipants:
+    post: 
+      tags: [conversation]
+      summary: Adds a user to a group.
+      operationId: AddToGroup
+      parameters: 
+        - $ref: "#/components/parameters/conversationId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userToAdd:
+                  $ref: "#/components/parameters/userId"
+      responses:
+        "201":
+          description: User added successfully
+          content:
+            application/json:
+                schema:
+                  $ref: "#/components/schemas/Partecipant"
+  /conversations/{id}/partecipants/me:
+    delete:
+      tags: [conversation]
+      summary: Removes logged-in user from a group.
+      operationId: leaveGroup
+      parameters: 
+        - $ref: "#/components/parameters/conversationId"
+      responses:
+        "204":
+          description: User removed successfully
   /messages:
     post:
       tags: [message]
-      summary: Forward a message to another conversation.
+      summary: Forwards a message to another conversation.
       operationId: forwardMessage
       requestBody:
         content:
@@ -165,21 +258,25 @@ paths:
         required: true
       responses:
         '201':
-          description: Message forwarded
-  /messages/{messageId}:
+          description: Message forwarded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+  /messages/{id}:
     delete:
       tags: [message]
-      summary: Delete a message.
+      summary: Deletes a message.
       operationId: deleteMessage
       parameters:
         - $ref: "#/components/parameters/messageId"
       responses:
         "204":
-          description: Comment removed
-  /messages/{messageId}/comments:
-    patch:
+          description: Comment removed successfully
+  /messages/{id}/comments:
+    post:
       tags: [message]
-      summary: Comment a message with an emoji.
+      summary: Comments a message with an emoji.
       operationId: commentMessage
       parameters:
         - $ref: "#/components/parameters/messageId"
@@ -195,16 +292,22 @@ paths:
         required: true
       responses:
         '201':
-          description: Comment added
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+  /messages/{id}/comments/me:  
     delete:
       tags: [message]
       operationId: uncommentMessage
-      summary: Delete a comment.
+      summary: Deletes a comment.
       parameters:
         - $ref: "#/components/parameters/messageId"
+        - $ref: "#/components/parameters/userId"
       responses:
         '204':
-          description: Comment removed
+          description: Comment removed successfully
 components:
   schemas:
     User:
@@ -219,8 +322,15 @@ components:
           minLength: 3
           maxLength: 16
         image:
-        # TODO: capire come definire l'immagine nell'API
           type: string
+          format: uri
+    Partecipant:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          properties:
+            isPartOf:
+              $ref: "#/components/parameters/conversationId"
     Conversation:
       type: object
       required: [id]
@@ -230,13 +340,9 @@ components:
         name:
           type: string
           example: Gruppo Calcio
-        partecipants:
-              type: array
-              items:
-                $ref: "#/components/parameters/userId"
         image:
           type: string
-        # TODO: capire come definire l'immagine nell'API
+          format: uri
         type:
           type: string
           enum: [group, direct]
@@ -246,8 +352,10 @@ components:
         - type: object
           properties:
             latestMessage:
-              $ref: "#/components/parameters/messageId"
-              # TODO: Se il messaggio è un'immagine voglio un'icona. Da implementare!
+              anyOf:
+                - $ref: "#/components/parameters/messageId"
+                - type: string
+                  format: uri
     Message:
       type: object
       required: [id, senderId, conversationId, content, timeStamp]
@@ -259,33 +367,33 @@ components:
         conversationId:
           $ref: "#/components/parameters/conversationId"
         content:
-          type: string
-          example: Hello! How are you?
-          # TODO: capire come gestire l'API per mandare una foto tramite messaggio
+          anyOf:
+            - type: string
+              example: Hello! How are you?
+            - type: string
+              format: uri
         timeStamp:
           type: string
           format: date-time
           example: 2025-11-03T17:30:00+01:00
-        comments:
-          type: array
-          items:
-            type: object
-            properties:
-              reacter:
-                $ref: "#/components/parameters/userId"
-              emoji:
-                type: string
-                example: 😋
         status:
           type: string
           description: Represents the message status, ✓ means *received*, ✓✓ means *read*
           enum: [✓, ✓✓]
         isForwarded:
           type: boolean
+    Comment:
+      type: object
+      properties:
+        reacterId:
+          $ref: "#/components/parameters/userId"
+        emoji:
+          type: string
+          example: 😋
   parameters:
     userId:
       in: path
-      name: userId
+      name: id
       schema:
         type: integer
         format: int64
@@ -294,7 +402,7 @@ components:
       required: true
     conversationId:
       in: path
-      name: conversationId
+      name: id
       schema: 
         type: integer
         format: int64
@@ -303,7 +411,7 @@ components:
       required: true
     messageId:
       in: path
-      name: messageId
+      name: id
       schema:
         type: integer
         format: int64
