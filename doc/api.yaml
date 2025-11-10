@@ -1,7 +1,7 @@
 openapi: 3.0.4
 info:
   title: WASAText
-  version: 0.0.4
+  version: 0.0.5
 security: 
   - userAuth: []
 tags:
@@ -87,6 +87,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [chats]
                 properties:
                   chats:
                     type: array
@@ -113,13 +114,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
-  /conversations/{id}:
+  /conversations/{conversationId}:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
     get:
       tags: [conversation]
       summary: Gives conversation details.
       operationId: getConversationDetails
-      parameters:
-        - $ref: "#/components/parameters/conversationId"
       responses:
         "200":
           description: Successfull operation
@@ -131,8 +132,6 @@ paths:
       tags: [conversation]
       summary: Updates group name.
       operationId: setGroupName
-      parameters:
-        - $ref: "#/components/parameters/conversationId"
       requestBody:
         content:
           application/json:
@@ -148,7 +147,7 @@ paths:
       responses:
         "204":
           description: Group name updated successfully
-  /conversations/{id}/photo:
+  /conversations/{conversationId}/photo:
     patch:
       tags: [conversation]
       summary: Updates group profile image.
@@ -171,13 +170,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Conversation"
-  /conversations/{id}/messages:
+  /conversations/{conversationId}/messages:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
     get:
       tags: [conversation]
       summary: Gives all messages of a conversation.
       operationId: getConversation
-      parameters:
-        - $ref: "#/components/parameters/conversationId"
       responses:
         "200":
           description: Successfull operation
@@ -185,8 +184,9 @@ paths:
             application/json:
                 schema:
                   type: object
+                  required: [messageList]
                   properties:
-                    messages:
+                    messageList:
                       type: array
                       items:
                         $ref: "#/components/schemas/Message"
@@ -194,8 +194,6 @@ paths:
       tags: [conversation]
       summary: Sends a new message in a conversation.
       operationId: sendMessage
-      parameters:
-        - $ref: "#/components/parameters/conversationId"
       requestBody:
         content:
           application/json:
@@ -208,7 +206,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
-  /conversations/{id}/partecipants:
+  /conversations/{conversationId}/partecipants:
     post: 
       tags: [conversation]
       summary: Adds a user to a group.
@@ -230,7 +228,7 @@ paths:
             application/json:
                 schema:
                   $ref: "#/components/schemas/Partecipant"
-  /conversations/{id}/partecipants/me:
+  /conversations/{conversationId}/partecipants/me:
     delete:
       tags: [conversation]
       summary: Removes logged-in user from a group.
@@ -255,7 +253,6 @@ paths:
                   $ref: "#/components/parameters/messageId"
                 destinationId:
                   $ref: "#/components/parameters/conversationId"
-        required: true
       responses:
         '201':
           description: Message forwarded successfully
@@ -263,7 +260,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
-  /messages/{id}:
+  /messages/{messageId}:
     delete:
       tags: [message]
       summary: Deletes a message.
@@ -273,7 +270,7 @@ paths:
       responses:
         "204":
           description: Comment removed successfully
-  /messages/{id}/comments:
+  /messages/{messageId}/comments:
     post:
       tags: [message]
       summary: Comments a message with an emoji.
@@ -289,7 +286,6 @@ paths:
                 emoji:
                   type: string
                   example: 😋
-        required: true
       responses:
         '201':
           description: Comment added successfully
@@ -297,14 +293,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Comment"
-  /messages/{id}/comments/me:  
+  /messages/{messageId}/comments/me:  
     delete:
       tags: [message]
       operationId: uncommentMessage
       summary: Deletes a comment.
       parameters:
         - $ref: "#/components/parameters/messageId"
-        - $ref: "#/components/parameters/userId"
       responses:
         '204':
           description: Comment removed successfully
@@ -312,9 +307,9 @@ components:
   schemas:
     User:
       type: object
-      required: [id]
+      required: [userId]
       properties:
-        id: 
+        userId: 
           $ref: "#/components/parameters/userId"
         username:
           type: string
@@ -323,7 +318,7 @@ components:
           maxLength: 16
         image:
           type: string
-          format: uri
+          format: url
     Partecipant:
       allOf:
         - $ref: "#/components/schemas/User"
@@ -333,16 +328,16 @@ components:
               $ref: "#/components/parameters/conversationId"
     Conversation:
       type: object
-      required: [id]
+      required: [conversationId, type]
       properties:
-        id:
+        conversationId:
           $ref: "#/components/parameters/conversationId"
         name:
           type: string
           example: Gruppo Calcio
         image:
           type: string
-          format: uri
+          format: url
         type:
           type: string
           enum: [group, direct]
@@ -355,31 +350,31 @@ components:
               anyOf:
                 - $ref: "#/components/parameters/messageId"
                 - type: string
-                  format: uri
+                  format: url
     Message:
       type: object
-      required: [id, senderId, conversationId, content, timeStamp]
+      required: [messageId, senderId, chatId, content, timeStamp, status]
       properties:
-        id: 
+        messageId: 
           $ref: "#/components/parameters/messageId"
         senderId:
           $ref: "#/components/parameters/userId"
-        conversationId:
+        chatId:
           $ref: "#/components/parameters/conversationId"
         content:
           anyOf:
             - type: string
               example: Hello! How are you?
             - type: string
-              format: uri
+              format: url
         timeStamp:
           type: string
           format: date-time
           example: 2025-11-03T17:30:00+01:00
         status:
           type: string
-          description: Represents the message status, ✓ means *received*, ✓✓ means *read*
-          enum: [✓, ✓✓]
+          description: Represents the message status.
+          enum: [read, sent, received]
         isForwarded:
           type: boolean
     Comment:
@@ -393,30 +388,36 @@ components:
   parameters:
     userId:
       in: path
-      name: id
+      name: userId
       schema:
         type: integer
         format: int64
         description: The user ID.
-        example: 5
+        example: 32
+        minimum: 1
+        maximum: 9007199254740991
       required: true
     conversationId:
       in: path
-      name: id
-      schema: 
+      name: conversationId
+      schema:
         type: integer
         format: int64
         description: The conversation ID.
         example: 32
+        minimum: 1
+        maximum: 9007199254740991
       required: true
     messageId:
       in: path
-      name: id
+      name: messageId
       schema:
         type: integer
         format: int64
         description: The message ID.
-        example: 9
+        example: 32
+        minimum: 1
+        maximum: 9007199254740991
       required: true
   securitySchemes:
       userAuth:
