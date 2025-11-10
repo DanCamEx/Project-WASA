@@ -1,7 +1,9 @@
 openapi: 3.0.4
 info:
   title: WASAText
-  version: 0.0.5
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
 security: 
   - userAuth: []
 tags:
@@ -17,7 +19,7 @@ paths:
   /session:
     post:
       tags: [login]
-      summary: Logs in the user.
+      summary: Logs in the user
       description: |-
         If the user does not exist, it will be created,
         and an identifier is returned.
@@ -29,10 +31,12 @@ paths:
           application/json:
             schema:
               type: object
+              description: Object containing the name
               properties:
                 name:
                   type: string
                   example: Maria
+                  description: The name
                   pattern: '^.*?$'
                   minLength: 3
                   maxLength: 16
@@ -43,13 +47,14 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Object containing the user ID
                 properties:
                   identifier:
                     $ref: "#/components/parameters/userId"
   /users/me:
     patch:
       tags: [user]
-      summary: Updates username.
+      summary: Updates username
       description: Changes the logged in username with a new one.
       operationId: setMyUserName
       requestBody:
@@ -57,10 +62,12 @@ paths:
           application/json:
             schema:
               type: object
+              description: Object containing the new name
               properties:
                 name:
                   type: string
                   example: Maria
+                  description: The name
                   pattern: 'ˆ.*?$'
                   minLength: 3
                   maxLength: 16
@@ -74,7 +81,7 @@ paths:
   /users/me/conversations:
     get:
       tags: [user]
-      summary: Gives all of the user conversations.
+      summary: Gives all of the user conversations
       description: |-
         Get a preview of all the user conversations. This preview includes 
         every attribute that a normal conversation has with the exception that 
@@ -87,6 +94,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Object containing the chat preview
                 required: [chats]
                 properties:
                   chats:
@@ -96,17 +104,19 @@ paths:
   /users/me/photo:
     patch:
       tags: [user]
-      summary: Updates user profile image.
+      summary: Updates user profile image
       operationId: setMyPhoto
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: object
+              description: Object containing the image in bin format
               properties:
                 image:
                   type: string
                   format: binary
+                  description: The image
       responses:
         "200":
           description: Photo uploaded successfully
@@ -119,7 +129,7 @@ paths:
       - $ref: "#/components/parameters/conversationId"
     get:
       tags: [conversation]
-      summary: Gives conversation details.
+      summary: Gives conversation details
       operationId: getConversationDetails
       responses:
         "200":
@@ -130,17 +140,19 @@ paths:
                   $ref: "#/components/schemas/Conversation"
     patch:
       tags: [conversation]
-      summary: Updates group name.
+      summary: Updates group name
       operationId: setGroupName
       requestBody:
         content:
           application/json:
             schema:
               type: object
+              description: Object containing the new group name
               properties:
                 name:
                   type: string
                   example: Gruppo Università
+                  description: The group name
                   pattern: '^.*?$'
                   minLength: 3
                   maxLength: 16
@@ -150,7 +162,7 @@ paths:
   /conversations/{conversationId}/photo:
     patch:
       tags: [conversation]
-      summary: Updates group profile image.
+      summary: Updates group profile image
       operationId: setGroupPhoto
       parameters:
         - $ref: "#/components/parameters/conversationId"
@@ -158,11 +170,13 @@ paths:
         content:
           multipart/form-data:
             schema:
+              description: Object containing the new image in bin format
               type: object
               properties:
                 image:
                   type: string
                   format: binary
+                  description: The image
       responses:
         "200":
           description: Photo uploaded successfully
@@ -175,7 +189,7 @@ paths:
       - $ref: "#/components/parameters/conversationId"
     get:
       tags: [conversation]
-      summary: Gives all messages of a conversation.
+      summary: Gives all messages of a conversation
       operationId: getConversation
       responses:
         "200":
@@ -184,15 +198,17 @@ paths:
             application/json:
                 schema:
                   type: object
+                  description: Object containing all the messages
                   required: [messageList]
                   properties:
                     messageList:
                       type: array
+                      description: The message list
                       items:
                         $ref: "#/components/schemas/Message"
     post:
       tags: [conversation]
-      summary: Sends a new message in a conversation.
+      summary: Sends a new message in a conversation
       operationId: sendMessage
       requestBody:
         content:
@@ -209,7 +225,7 @@ paths:
   /conversations/{conversationId}/partecipants:
     post: 
       tags: [conversation]
-      summary: Adds a user to a group.
+      summary: Adds a user to a group
       operationId: AddToGroup
       parameters: 
         - $ref: "#/components/parameters/conversationId"
@@ -218,6 +234,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Object containing the user ID to add
               properties:
                 userToAdd:
                   $ref: "#/components/parameters/userId"
@@ -231,7 +248,7 @@ paths:
   /conversations/{conversationId}/partecipants/me:
     delete:
       tags: [conversation]
-      summary: Removes logged-in user from a group.
+      summary: Removes logged-in user from a group
       operationId: leaveGroup
       parameters: 
         - $ref: "#/components/parameters/conversationId"
@@ -241,13 +258,14 @@ paths:
   /messages:
     post:
       tags: [message]
-      summary: Forwards a message to another conversation.
+      summary: Forwards a message to another conversation
       operationId: forwardMessage
       requestBody:
         content:
           application/json:
             schema:
               type: object
+              description: Object containing the message ID and the conversation ID
               properties:
                 forwardedForm:
                   $ref: "#/components/parameters/messageId"
@@ -263,7 +281,7 @@ paths:
   /messages/{messageId}:
     delete:
       tags: [message]
-      summary: Deletes a message.
+      summary: Deletes a message
       operationId: deleteMessage
       parameters:
         - $ref: "#/components/parameters/messageId"
@@ -273,7 +291,7 @@ paths:
   /messages/{messageId}/comments:
     post:
       tags: [message]
-      summary: Comments a message with an emoji.
+      summary: Comments a message with an emoji
       operationId: commentMessage
       parameters:
         - $ref: "#/components/parameters/messageId"
@@ -282,10 +300,12 @@ paths:
           application/json:
             schema:
               type: object
+              description: Object containing the emoji to add
               properties:
                 emoji:
                   type: string
                   example: 😋
+                  description: The emoji
       responses:
         '201':
           description: Comment added successfully
@@ -297,7 +317,7 @@ paths:
     delete:
       tags: [message]
       operationId: uncommentMessage
-      summary: Deletes a comment.
+      summary: Deletes a comment
       parameters:
         - $ref: "#/components/parameters/messageId"
       responses:
@@ -314,11 +334,13 @@ components:
         username:
           type: string
           example: Mario
+          description: The username
           minLength: 3
           maxLength: 16
         image:
           type: string
           format: url
+          description: The image
     Partecipant:
       allOf:
         - $ref: "#/components/schemas/User"
@@ -335,12 +357,15 @@ components:
         name:
           type: string
           example: Gruppo Calcio
+          description: The name
         image:
           type: string
           format: url
+          description: The image
         type:
           type: string
           enum: [group, direct]
+          description: The type, must be group or direct
     ConversationPreview:
       allOf:
         - $ref: "#/components/schemas/Conversation"
@@ -390,34 +415,46 @@ components:
       in: path
       name: userId
       schema:
-        type: integer
-        format: int64
-        description: The user ID.
-        example: 32
-        minimum: 1
-        maximum: 9007199254740991
+        type: object
+        description: Object containing the user ID
+        properties:
+          id:
+            type: integer
+            format: int64
+            description: The user ID.
+            example: 32
+            minimum: 1
+            maximum: 9007199254740991
       required: true
     conversationId:
       in: path
       name: conversationId
       schema:
-        type: integer
-        format: int64
-        description: The conversation ID.
-        example: 32
-        minimum: 1
-        maximum: 9007199254740991
+        type: object
+        description: Object containing the conversation ID
+        properties:
+         id:
+            type: integer
+            format: int64
+            description: The conversation ID.
+            example: 32
+            minimum: 1
+            maximum: 9007199254740991
       required: true
     messageId:
       in: path
       name: messageId
       schema:
-        type: integer
-        format: int64
-        description: The message ID.
-        example: 32
-        minimum: 1
-        maximum: 9007199254740991
+        type: object
+        description: Object containing the message ID
+        properties:
+          id:
+            type: integer
+            format: int64
+            description: The message ID.
+            example: 32
+            minimum: 1
+            maximum: 9007199254740991
       required: true
   securitySchemes:
       userAuth:
