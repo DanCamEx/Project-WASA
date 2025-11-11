@@ -38,15 +38,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserID"
       security: []
-  /users/me:
+  /users/{userId}:
     patch:
       tags: [user]
       summary: Updates username
       description: Changes the logged in username with a new one.
       operationId: setMyUserName
+      parameters:
+        - $ref: "#/components/parameters/userId"
       requestBody:
         content:
-          application/json:
+          application/merge-patch+json:
             schema:
               $ref: "#/components/schemas/UserName"
       responses:
@@ -56,7 +58,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
-  /users/me/conversations:
+              example:
+                id: 45
+                name: Mario
+                image: https://example.com/image.png
+  /users/{userId}/conversations:
     get:
       tags: [user]
       summary: Gives all of the user conversations
@@ -65,6 +71,8 @@ paths:
         every attribute that a normal conversation has with the exception that 
         not all messages are obtained, just the latest one.
       operationId: getMyConversations
+      parameters:
+        - $ref: "#/components/parameters/userId"
       responses:
         "200":
           description: Successfull operation
@@ -72,18 +80,19 @@ paths:
             application/json:
               schema:
                 type: object
-                description: Object containing the chat preview
-                required: [chats]
                 properties:
                   chats:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ConversationPreview"
-  /users/me/photo:
+                      $ref: "#/components/schemas/Conversation"
+                required: [chats]
+  /users/{userId}/photo:
     patch:
       tags: [user]
       summary: Updates user profile image
       operationId: setMyPhoto
+      parameters:
+        - $ref: "#/components/parameters/userId"
       requestBody:
         content:
           multipart/form-data:
@@ -94,7 +103,6 @@ paths:
                 image:
                   type: string
                   format: binary
-                  description: The image
       responses:
         "200":
           description: Photo uploaded successfully
@@ -215,7 +223,7 @@ paths:
               description: Object containing the user ID to add
               properties:
                 userToAdd:
-                  $ref: "#/components/parameters/userId"
+                  $ref: "#/components/schemas/UserID"
       responses:
         "201":
           description: User added successfully
@@ -246,9 +254,9 @@ paths:
               description: Object containing the message ID and the conversation ID
               properties:
                 forwardedForm:
-                  $ref: "#/components/parameters/messageId"
+                  $ref: "#/components/schemas/MessageID"
                 destinationId:
-                  $ref: "#/components/parameters/conversationId"
+                  $ref: "#/components/schemas/ConversationID"
       responses:
         '201':
           description: Message forwarded successfully
@@ -304,125 +312,189 @@ paths:
 components:
   schemas:
     UserID: 
-      type: integer
-      format: int64
-      minimum: 1
-      maximum: 999999
-      example: 32
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: It's assigned to every user when he/she register.
+          minimum: 1
+          maximum: 999999
+      example:
+        id: 32
+      required: [id]
     UserName:
-      type: string
-      minLength: 3
-      maxLength: 16
-      example: Mario    
+      type: object
+      properties:
+        name: 
+          type: string
+          description: It's chosen by the user when he/she log in. It can be changed.
+          minLength: 3
+          maxLength: 16
+      example: 
+        name: Mario
+      required: [name]  
     User:
       allOf:
         - $ref: "#/components/schemas/UserID"
         - $ref: "#/components/schemas/UserName"
-        - title: Image
-          type: string
-          format: url
-    Partecipant:
-      allOf:
-        - $ref: "#/components/schemas/User"
         - type: object
           properties:
-            isPartOf:
-              $ref: "#/components/parameters/conversationId"
-    Conversation:
-      type: object
-      required: [conversationId, type]
-      properties:
-        conversationId:
-          $ref: "#/components/parameters/conversationId"
-        name:
-          type: string
-          example: Gruppo Calcio
-          description: The name
-        image:
-          type: string
-          format: url
-          description: The image
-        type:
-          type: string
-          enum: [group, direct]
-          description: The type, must be group or direct
-    ConversationPreview:
-      allOf:
-        - $ref: "#/components/schemas/Conversation"
-        - type: object
-          properties:
-            latestMessage:
-              anyOf:
-                - $ref: "#/components/parameters/messageId"
-                - type: string
-                  format: url
-    Message:
-      type: object
-      required: [messageId, senderId, chatId, content, timeStamp, status]
-      properties:
-        messageId: 
-          $ref: "#/components/parameters/messageId"
-        senderId:
-          $ref: "#/components/parameters/userId"
-        chatId:
-          $ref: "#/components/parameters/conversationId"
-        content:
-          anyOf:
-            - type: string
-              example: Hello! How are you?
-            - type: string
+            image:
+              type: string
               format: url
-        timeStamp:
-          type: string
-          format: date-time
-          example: 2025-11-03T17:30:00+01:00
-        status:
-          type: string
-          description: Represents the message status.
-          enum: [read, sent, received]
-        isForwarded:
-          type: boolean
+              description: The location of the profile image uploaded by the user.
+      example: 
+        id: 32
+        name: Mario
+        image: https://example.com/image.png
+      required: [id, name, image]
+    ConversationID:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: It's unique and it's assigned to every conversation when it is started/created.
+          minimum: 1
+          maximum: 999999
+      example:
+        id: 43
+      required: [id]
+    Conversation:
+      allOf:
+        - $ref: "#/components/schemas/ConversationID"
+        - type: object
+          properties:
+            name:
+              type: string
+              description: |-
+                It can be the username of the person you are talking to, 
+                or the group name chosen during its creation.
+            image:
+              type: string
+              format: url
+              description: |-
+                It will be your receiver image if it's a direct conversation,
+                or the chosen group image if it's a group conversation.
+            type:
+              type: string
+              enum: [group, direct]
+              description: |- 
+                Represents if a conversation can be a group with more
+                than two partecipants or a direct one, with just two users.
+            latestMessage:
+              type: object
+              properties:
+                createdAt:
+                  type: string
+                  format: date-time
+                  description: Represents when the message has been created.
+                content:
+                  anyOf:
+                    - $ref: "#/components/schemas/MessageID"
+                    - type: string
+                      format: url
+                  description: |- 
+                    It can be the text of the message or 
+                    a simple icon if the latest message is an image.
+      example:
+        id: 324
+        name: Gruppo Calcio
+        image: https://example.com/image.png
+        type: group
+        latestMessage: 
+          createdAt: 2025-11-03T17:30:00+01:00
+          content: 435
+      required: [id, name, image, type, latestMessage]
+    MessageID:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: It's unique and created when a message is sent or forwarded.
+          minimum: 1
+          maximum: 999999
+      example:
+        id: 56
+      required: [id]
+    Message:
+      allOf:
+          - $ref: "#/components/schemas/MessageID"
+          - type: object
+            properties:
+              senderId:
+                $ref: "#/components/schemas/UserID"
+              chatId:
+                $ref: "#/components/schemas/ConversationID"
+              content:
+                anyOf:
+                  - title: text
+                    type: string
+                  - title: image
+                    type: string
+                    format: url
+                description: It can be simple text, or the location of an image uploaded.
+              timeStamp:
+                type: string
+                format: date-time
+                description: The exact istant when the message is sent on the conversation.
+              status:
+                type: string
+                enum: [read, sent, received]
+              isForwarded:
+                type: boolean
+      example:
+        id: 56
+        senderId: 43
+        chatId: 40
+        content: Hello, how are you?
+        timeStamp: 2025-11-03T17:30:00+01:00
+        status: read
+        isForwarded: false
+      required: [senderId, chatId, content, timeStamp, status, isForwarded]
     Comment:
       type: object
       properties:
         reacterId:
-          $ref: "#/components/parameters/userId"
+          $ref: "#/components/schemas/UserID"
         emoji:
           type: string
-          example: 😋
+          description: The reaction chosen by the reacter when he/she comment a message. It can only be an emoji.
+      example:
+        reacterId: 41
+        emoji: 😋
+      required: [reacterId, emoji]
+    Partecipant:
+      allOf:
+        - $ref: "#/components/schemas/UserID"
+        - type: object
+          properties:
+            isPartOf:
+              $ref: "#/components/schemas/ConversationID"
+      example:
+        id: 459
+        isPartOf: 32
+      required: [id, isPartOf]
   parameters:
     userId:
       in: path
       name: userId
       schema:
-        type: integer
-        description: Object containing the user ID
-        format: int64
-        example: 32
-        minimum: 1
-        maximum: 9007199254740991
+        $ref: "#/components/schemas/UserID"
       required: true
     conversationId:
       in: path
       name: conversationId
       schema:
-        type: integer
-        description: Object containing the conversation ID
-        format: int64
-        example: 32
-        minimum: 1
-        maximum: 9007199254740991
+        $ref: "#/components/schemas/ConversationID"
       required: true
     messageId:
       in: path
       name: messageId
       schema:
-        type: integer
-        description: Object containing the message ID
-        format: int64
-        example: 32
-        minimum: 1
-        maximum: 9007199254740991
+        $ref: "#/components/schemas/MessageID"
       required: true
   securitySchemes:
       userAuth:
