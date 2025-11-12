@@ -102,7 +102,7 @@ paths:
                       type: direct
                       latestMessage: 
                         createdAt: 2025-12-03T17:30:00+01:00
-                        content: 
+                        body: 
                           id: 34
                 required: [conversations]
   /users/{userId}/photo:
@@ -224,18 +224,20 @@ paths:
                       maxItems: 999999
                   example:
                     messageList:
-                      - messageID:
-                          id: 56
-                        senderId: 43
-                        chatId: 40
+                      - id: 56
+                        senderId: 
+                          id: 43
+                        chatId: 
+                          id: 40
                         content: Hello, how are you?
                         timeStamp: 2025-11-03T17:30:00+01:00
                         status: read
                         isForwarded: false
-                      - messageID:
-                          id: 98
-                        senderId: 102
-                        chatId: 73
+                      - id: 98
+                        senderId: 
+                          id: 452
+                        chatId: 
+                          id: 73
                         content: https://example.com/image.png
                         timeStamp: 2023-01-23T12:37:00+01:00
                         status: received
@@ -351,13 +353,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: Object containing the emoji to add
-              properties:
-                emoji:
-                  type: string
-                  example: 😋
-                  description: The emoji
+              $ref: "#/components/schemas/Comment"
       responses:
         '201':
           description: Comment added successfully
@@ -383,6 +379,7 @@ components:
   schemas:
     UserID: 
       type: object
+      description: It's assigned to every user when he/she register.
       properties:
         id:
           type: integer
@@ -395,15 +392,16 @@ components:
       required: [id]
     UserName:
       type: object
+      description: It's chosen by the user when he/she log in. It can be changed.
       properties:
         name: 
           type: string
           description: It's chosen by the user when he/she log in. It can be changed.
+          pattern: .*
           minLength: 3
           maxLength: 16
       example: 
-        name: Mario
-      required: [name]  
+        name: Mario 
     User:
       allOf:
         - $ref: "#/components/schemas/UserID"
@@ -421,6 +419,7 @@ components:
       required: [id, name, image]
     ConversationID:
       type: object
+      description: It's unique and it's assigned to every conversation when it is started/created.
       properties:
         id:
           type: integer
@@ -455,12 +454,15 @@ components:
                 than two partecipants or a direct one, with just two users.
             latestMessage:
               type: object
+              description: |-
+                The most recent message sent in the conversation represented as 
+                its creation date-time and the body. It can be empty
               properties:
                 createdAt:
                   type: string
                   format: date-time
                   description: Represents when the message has been created.
-                content:
+                body:
                   anyOf:
                     - $ref: "#/components/schemas/MessageID"
                     - type: string
@@ -476,9 +478,10 @@ components:
         latestMessage: 
           createdAt: 2025-11-03T17:30:00+01:00
           body: 435
-      required: [id, name, image, type, latestMessage]
+      required: [id, name, image, type]
     MessageID:
       type: object
+      description: It's unique and created when a message is sent or forwarded.
       properties:
         id:
           type: integer
@@ -490,6 +493,7 @@ components:
         id: 56
       required: [id]
     Message:
+      description: Created when a user write in a group or in a direct conversation.
       allOf:
           - $ref: "#/components/schemas/MessageID"
           - type: object
@@ -502,19 +506,31 @@ components:
                 anyOf:
                   - title: text
                     type: string
+                    pattern: .*
+                    minLength: 1
+                    maxLength: 100
                   - title: image
                     type: string
                     format: url
+                    pattern: ^[a-zA-Z]+://.+$
+                    minLength: 8
+                    maxLength: 100
                 description: It can be simple text, or the location of an image uploaded.
               timeStamp:
                 type: string
                 format: date-time
                 description: The exact istant when the message is sent on the conversation.
+                minLength: 20
+                maxLength: 25
               status:
                 type: string
                 enum: [read, sent, received]
+                description: Represents when the message has been read, received or just sent.
+                minLength: 4
+                maxLength: 8
               isForwarded:
                 type: boolean
+                description: Represents if the message message has been forwarded or not.
       example:
         id: 56
         senderId: 43
@@ -526,17 +542,23 @@ components:
       required: [senderId, chatId, content, timeStamp, status, isForwarded]
     Comment:
       type: object
+      description: Created when a user want to react to an existing message with an emoji.
       properties:
         reacterId:
           $ref: "#/components/schemas/UserID"
         emoji:
           type: string
           description: The reaction chosen by the reacter when he/she comment a message. It can only be an emoji.
+          pattern: .*
+          minLength: 1
+          maxLength: 10
       example:
-        reacterId: 41
+        reacterId: 
+          id: 54
         emoji: 😋
       required: [reacterId, emoji]
     Partecipant:
+      description: A link which connect a user to a conversation.
       allOf:
         - $ref: "#/components/schemas/UserID"
         - type: object
@@ -549,30 +571,36 @@ components:
       required: [id, isPartOf]
     ImageUpload:
       type: object
+      description: The way to upload an image, used for profile and group images.
       properties: 
-        image:
+        uploadedImage:
           type: string
           format: binary
           description: The image binary file to upload, could be the profile image, the group image etc...
+          minLength: 1
+          maxLength: 13981014 #10MB circa
       example:
-        image: (binary image data)
-      required: [image]
+        uploadedImage: (binary image data)
+      required: [uploadedImage]
   parameters:
     userId:
       in: path
       name: userId
+      description: It's assigned to every user when he/she register.
       schema:
         $ref: "#/components/schemas/UserID"
       required: true
     conversationId:
       in: path
       name: conversationId
+      description: It's unique and it's assigned to every conversation when it is started/created.
       schema:
         $ref: "#/components/schemas/ConversationID"
       required: true
     messageId:
       in: path
       name: messageId
+      description: It's unique and created when a message is sent or forwarded.
       schema:
         $ref: "#/components/schemas/MessageID"
       required: true
