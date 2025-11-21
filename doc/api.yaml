@@ -1,611 +1,273 @@
-openapi: 3.0.4
-info:
-  title: WASAText
-  version: 1.0.0
+openapi: 3.0.0
 servers:
-  - url: https://api.example.com/v1
-security: 
-  - userAuth: []
-tags:
-  - name: user
-    description: Operations about user
-  - name: login
-    description: Access operation
-  - name: conversation
-    description: Operations about conversation
-  - name: message
-    description: Operations about message
+  - url: "http://localhost:3000"
+info:
+  title: Fantastic Coffee (decaffeinated)
+  description: Fantastic Coffee (decaffeinated), the skeleton project for Web and Software architecture course
+  version: 1.0.0
 paths:
-  /session:  
-    post:
-      tags: [login]
-      summary: Logs in the user
-      description: |-
-        If the user does not exist, it will be created,
-        and an identifier is returned.
-        If the user exists, the user identifier is returned.
-      operationId: doLogin
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserName"
-      responses:
-        '201':
-          description: User log-in action successful
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserID"
-      security: []
-  /users/{userId}:
-    patch:
-      tags: [user]
-      summary: Updates username
-      description: Changes the logged in username with a new one.
-      operationId: setMyUserName
-      parameters:
-        - $ref: "#/components/parameters/userId"
-      requestBody:
-        content:
-          application/merge-patch+json:
-            schema:
-              $ref: "#/components/schemas/UserName"
-      responses:
-        "200":
-          description: Username update successful
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-  /users/{userId}/conversations:
-    get:
-      tags: [user]
-      summary: Gives all of the user conversations
-      description: |-
-        Gets a preview of all the user conversations. This preview includes 
-        every attribute that a normal conversation has with the exception that 
-        not all messages are obtained, just the latest one.
-      operationId: getMyConversations
-      parameters:
-        - $ref: "#/components/parameters/userId"
-      responses:
-        "200":
-          description: Successfull operation
-          content:
-            application/json:
-              schema:
-                type: object
-                description: |-
-                  Represents all the direct conversations started and the 
-                  groups joined/created by the user.
-                properties:
-                  conversations:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Conversation"
-                    description: The array with all the conversations inside.
-                    minItems: 0
-                    maxItems: 999999
-                example: 
-                  conversations:
-                    - id: 324
-                      name: Gruppo Calcio
-                      image: https://example.com/image.png
-                      type: group
-                      latestMessage: 
-                        createdAt: 2025-11-03T17:30:00+01:00
-                        body: https://example.com/icon.png
-                    - id: 345
-                      name: Luca
-                      image: https://example.com/image.png
-                      type: direct
-                      latestMessage: 
-                        createdAt: 2025-12-03T17:30:00+01:00
-                        body: 
-                          id: 34
-                required: [conversations]
-  /users/{userId}/photo:
-    put:
-      tags: [user]
-      summary: Updates user profile image
-      description: |-
-        Replaces profile image with the new one. Returns the 
-        user resource with the url inside updated.
-      operationId: setMyPhoto
-      parameters:
-        - $ref: "#/components/parameters/userId"
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: "#/components/schemas/ImageUpload"
-      responses:
-        "200":
-          description: Photo uploaded successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-  /conversations/{conversationId}:
+  /status:
     parameters:
-      - $ref: "#/components/parameters/conversationId"
+      - $ref: "#/components/parameters/XAppBuild"
+      - $ref: "#/components/parameters/XAppVersion"
+      - $ref: "#/components/parameters/XAppLanguage"
+      - $ref: "#/components/parameters/XAppPlatform"
     get:
-      tags: [conversation]
-      summary: Gives conversation details
+      tags: ["General"]
+      operationId: getStatusMessage
+      summary: Get status message for the user about issues / updates
       description: |-
-        Returns the resource "conversation" with all its properties. 
-        See its schema for more info.
-      operationId: getConversationDetails
+        The response contains a status message meant for the user. It might
+        contains information about current technical issues, update messages
+        or general information.
       responses:
         "200":
-          description: Successfull operation
+          description: Status message available
           content:
             application/json:
-                schema:
-                  $ref: "#/components/schemas/Conversation"
-    patch:
-      tags: [conversation]
-      summary: Updates group name
-      description: |- 
-        Changes the attribute "name" of the resource "conversation" 
-        with the new name in the body. It works only if the conversation is of type "group".
-      operationId: setGroupName
+              schema:
+                $ref: "#/components/schemas/StatusInfo"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /:
+    get:
+      tags: ["Group 1"]
+      operationId: index
+      summary: Get an index
+      description: |-
+        This is an example of an index API description
+      responses:
+        "200":
+          description: Successful
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /context:
+    parameters:
+      - $ref: "#/components/parameters/XAppBuild"
+      - $ref: "#/components/parameters/XAppVersion"
+      - $ref: "#/components/parameters/XAppLanguage"
+      - $ref: "#/components/parameters/XAppPlatform"
+    post:
+      tags: ["Group 1"]
+      operationId: getContext
+      summary: Another API example
+      description: |-
+        Example description 2
+      responses:
+        "200":
+          description: Request ok
+          headers:
+            X-Access-Token:
+              description: Access token for authenticated requests
+              schema: { type: string }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /authenticated:
+    parameters:
+      - $ref: "#/components/parameters/XAppBuild"
+      - $ref: "#/components/parameters/XAppVersion"
+      - $ref: "#/components/parameters/XAppLanguage"
+      - $ref: "#/components/parameters/XAppPlatform"
+    get:
+      tags: ["Group 2"]
+      operationId: getAuthenticatedExample
+      summary: Get an endpoint with authentication
+      description: |-
+        Get an endpoint with auth
+      security:
+        - LegacyAuth: []
+        - AppToken: []
+      responses:
+        "200":
+          description: Logout successful
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /pictures/{cat}:
+    parameters:
+      - $ref: "#/components/parameters/XAppBuild"
+      - $ref: "#/components/parameters/XAppVersion"
+      - $ref: "#/components/parameters/XAppLanguage"
+      - $ref: "#/components/parameters/XAppPlatform"
+      - $ref: "#/components/parameters/cat"
+    get:
+      tags: ["Cat pictures"]
+      operationId: getCatFromPicture
+      summary: Example of a parameter in URL
+      description: |-
+        Example of a parameter in URL
+      security:
+        - LegacyAuth: []
+      responses:
+        "200":
+          description: Student picture found
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+              example: Picture binary file
+        "404":
+          description: Student picture not found
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+
+  /autofeeder/{cat}:
+    parameters:
+      - $ref: "#/components/parameters/XAppBuild"
+      - $ref: "#/components/parameters/XAppVersion"
+      - $ref: "#/components/parameters/XAppLanguage"
+      - $ref: "#/components/parameters/XAppPlatform"
+      - $ref: "#/components/parameters/cat"
+    put:
+      tags: ["Autofeeder"]
+      operationId: createCatAutofeeder
+      summary: Example of PUT operation
+      security:
+        - LegacyAuth: []
+      responses:
+        "200":
+          description: Auto feed enabled
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      tags: ["Autofeeder"]
+      operationId: deleteCatAutofeeder
+      summary: Example of DELETE operation
+      security:
+        - LegacyAuth: []
+      responses:
+        "200":
+          description: Auto feed disabled
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /session/login:
+    parameters:
+      - $ref: "#/components/parameters/XAppBuild"
+      - $ref: "#/components/parameters/XAppVersion"
+      - $ref: "#/components/parameters/XAppLanguage"
+      - $ref: "#/components/parameters/XAppPlatform"
+    post:
+      tags: ["Session management"]
+      operationId: login
+      summary: Log-in into system
+      description: |-
+        Perform a log-in action using username and password credentials.
+        Returns a token which can be used in authenticated requests.
       requestBody:
         content:
-          application/merge-patch+json:
+          application/x-www-form-urlencoded:
             schema:
               type: object
-              description: Object containing the new group name
               properties:
-                name:
+                userid:
                   type: string
-                  example: Gruppo Calcio
-                  description: The group name
-                  pattern: '^.*?$'
+                  pattern: '^[a-zA-Z0-9]+$'
                   minLength: 3
-                  maxLength: 16
+                  maxLength: 255
+                password:
+                  type: string
+                  pattern: '^.*?$'
+                  minLength: 8
+                  maxLength: 255
       responses:
         "200":
-          description: Group name updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Conversation"
-  /conversations/{conversationId}/photo:
-    put:
-      tags: [conversation]
-      summary: Updates group profile image
-      description: |- 
-        Replaces group image with the new one. Returns the 
-        conversation resource with the url inside updated. It works
-        ONLY if the type attribute is group.
-      operationId: setGroupPhoto
-      parameters:
-        - $ref: "#/components/parameters/conversationId"
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: "#/components/schemas/ImageUpload"
-      responses:
-        "200":
-          description: Photo uploaded successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Conversation"
-  /conversations/{conversationId}/messages:
-    parameters:
-      - $ref: "#/components/parameters/conversationId"
-    get:
-      tags: [conversation]
-      summary: Gives all messages of a conversation
-      description: |-
-        Returns all the messages recources associated 
-        with the provided conversation.
-      operationId: getConversation
-      responses:
-        "200":
-          description: Successfull operation
-          content:
-            application/json:
-                schema:
-                  type: object
-                  description: Object containing all the messages
-                  required: [messageList]
-                  properties:
-                    messageList:
-                      type: array
-                      description: The message list
-                      items:
-                        $ref: "#/components/schemas/Message"
-                      minItems: 0
-                      maxItems: 999999
-                  example:
-                    messageList:
-                      - id: 56
-                        senderId: 
-                          id: 43
-                        chatId: 
-                          id: 40
-                        content: Hello, how are you?
-                        timeStamp: 2025-11-03T17:30:00+01:00
-                        status: read
-                        isForwarded: false
-                      - id: 98
-                        senderId: 
-                          id: 452
-                        chatId: 
-                          id: 73
-                        content: https://example.com/image.png
-                        timeStamp: 2023-01-23T12:37:00+01:00
-                        status: received
-                        isForwarded: true
-    post:
-      tags: [conversation]
-      summary: Sends a new message in a conversation
-      description: |- 
-        Creates a message resource associatede with the 
-        conversation the user is writing in and returns it.
-      operationId: sendMessage
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Message"
-      responses:
-        "201":
-          description: Message created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
-  /conversations/{conversationId}/partecipants:
-    post: 
-      tags: [conversation]
-      summary: Adds a user to a group
-      description: |-
-        Adds a partecipant resource linking the user with the 
-        ID provided to the conversation. 
-        The conversation must be of type "group" to work.
-      operationId: addToGroup
-      parameters: 
-        - $ref: "#/components/parameters/conversationId"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Object containing the user ID to add
-              properties:
-                userToAdd:
-                  $ref: "#/components/schemas/UserID"
-      responses:
-        "201":
-          description: User added successfully
-          content:
-            application/json:
-                schema:
-                  $ref: "#/components/schemas/Partecipant"
-  /conversations/{conversationId}/partecipants/{userId}:
-    delete:
-      tags: [conversation]
-      summary: Removes logged-in user from a group
-      description: |-
-        Deletes the partecipant resource associated with the user and the conversation in the path.
-        The conversation must be of type "group" to work.
-      operationId: leaveGroup
-      parameters: 
-        - $ref: "#/components/parameters/conversationId"
-        - $ref: "#/components/parameters/userId"
-      responses:
-        "204":
-          description: User removed successfully
-  /messages:
-    post:
-      tags: [message]
-      summary: Forwards a message to another conversation
-      description: |- 
-        Copies only the body of the message with the id provided and sends it 
-        as a new message resource to the conversation with the id provided.
-      operationId: forwardMessage
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Object containing the message ID and the conversation ID
-              properties:
-                forwardedForm:
-                  $ref: "#/components/schemas/MessageID"
-                destinationId:
-                  $ref: "#/components/schemas/ConversationID"
-      responses:
-        '201':
-          description: Message forwarded successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
-  /messages/{messageId}:
-    delete:
-      tags: [message]
-      summary: Deletes a message
-      description: |-
-        Deletes a message resource. 
-        Works only if the message is sent by the logged in user.
-      operationId: deleteMessage
-      parameters:
-        - $ref: "#/components/parameters/messageId"
-      responses:
-        "204":
-          description: Comment removed successfully
-  /messages/{messageId}/comments:
-    post:
-      tags: [message]
-      summary: Comments a message with an emoji
-      description: Creates a new comment to an existing message and returns it.
-      operationId: commentMessage
-      parameters:
-        - $ref: "#/components/parameters/messageId"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Comment"
-      responses:
-        '201':
-          description: Comment added successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Comment"
-  /messages/{messageId}/comments/{userId}:  
-    delete:
-      tags: [message]
-      operationId: uncommentMessage
-      summary: Deletes a comment
-      description: |-
-        Deletes a comment resource from an existing message. 
-        Works only if the comment is sent by the logged in user.
-      parameters:
-        - $ref: "#/components/parameters/messageId"
-        - $ref: "#/components/parameters/userId"
-      responses:
-        '204':
-          description: Comment removed successfully
+          description: Login successful
+          headers:
+            X-Access-Token:
+              description: Access token for authenticated requests
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403":
+          description: Login failed
+          headers:
+            X-Message:
+              description: Error message
+              schema: { type: string }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+
 components:
   schemas:
-    UserID: 
+    StatusInfo:
+      title: Status Info
       type: object
-      description: It's assigned to every user when he/she register.
       properties:
-        id:
-          type: integer
-          format: int64
-          description: It's assigned to every user when he/she register.
-          minimum: 1
-          maximum: 999999
-      example:
-        id: 32
-      required: [id]
-    UserName:
-      type: object
-      description: It's chosen by the user when he/she log in. It can be changed.
-      properties:
-        name: 
+        status:
           type: string
-          description: It's chosen by the user when he/she log in. It can be changed.
-          pattern: .*
-          minLength: 3
-          maxLength: 16
-      example: 
-        name: Mario 
-    User:
-      allOf:
-        - $ref: "#/components/schemas/UserID"
-        - $ref: "#/components/schemas/UserName"
-        - type: object
-          properties:
-            image:
-              type: string
-              format: url
-              description: The location of the profile image uploaded by the user.
-      example: 
-        id: 32
-        name: Mario
-        image: https://example.com/image.png
-      required: [id, name, image]
-    ConversationID:
-      type: object
-      description: It's unique and it's assigned to every conversation when it is started/created.
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: It's unique and it's assigned to every conversation when it is started/created.
-          minimum: 1
-          maximum: 999999
-      example:
-        id: 43
-      required: [id]
-    Conversation:
-      allOf:
-        - $ref: "#/components/schemas/ConversationID"
-        - type: object
-          properties:
-            name:
-              type: string
-              description: |-
-                It can be the username of the person you are talking to, 
-                or the group name chosen during its creation.
-            image:
-              type: string
-              format: url
-              description: |-
-                It will be your receiver image if it's a direct conversation,
-                or the chosen group image if it's a group conversation.
-            type:
-              type: string
-              enum: [group, direct]
-              description: |- 
-                Represents if a conversation can be a group with more
-                than two partecipants or a direct one, with just two users.
-            latestMessage:
-              type: object
-              description: |-
-                The most recent message sent in the conversation represented as 
-                its creation date-time and the body. It can be empty
-              properties:
-                createdAt:
-                  type: string
-                  format: date-time
-                  description: Represents when the message has been created.
-                body:
-                  anyOf:
-                    - $ref: "#/components/schemas/MessageID"
-                    - type: string
-                      format: url
-                  description: |- 
-                    It can be the text of the message or 
-                    a simple icon if the latest message is an image.
-      example:
-        id: 324
-        name: Gruppo Calcio
-        image: https://example.com/image.png
-        type: group
-        latestMessage: 
-          createdAt: 2025-11-03T17:30:00+01:00
-          body: 435
-      required: [id, name, image, type]
-    MessageID:
-      type: object
-      description: It's unique and created when a message is sent or forwarded.
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: It's unique and created when a message is sent or forwarded.
-          minimum: 1
-          maximum: 999999
-      example:
-        id: 56
-      required: [id]
-    Message:
-      description: Created when a user write in a group or in a direct conversation.
-      allOf:
-          - $ref: "#/components/schemas/MessageID"
-          - type: object
-            properties:
-              senderId:
-                $ref: "#/components/schemas/UserID"
-              chatId:
-                $ref: "#/components/schemas/ConversationID"
-              content:
-                anyOf:
-                  - title: text
-                    type: string
-                    pattern: .*
-                    minLength: 1
-                    maxLength: 100
-                  - title: image
-                    type: string
-                    format: url
-                    pattern: ^[a-zA-Z]+://.+$
-                    minLength: 8
-                    maxLength: 100
-                description: It can be simple text, or the location of an image uploaded.
-              timeStamp:
-                type: string
-                format: date-time
-                description: The exact istant when the message is sent on the conversation.
-                minLength: 20
-                maxLength: 25
-              status:
-                type: string
-                enum: [read, sent, received]
-                description: Represents when the message has been read, received or just sent.
-                minLength: 4
-                maxLength: 8
-              isForwarded:
-                type: boolean
-                description: Represents if the message message has been forwarded or not.
-      example:
-        id: 56
-        senderId: 43
-        chatId: 40
-        content: Hello, how are you?
-        timeStamp: 2025-11-03T17:30:00+01:00
-        status: read
-        isForwarded: false
-      required: [senderId, chatId, content, timeStamp, status, isForwarded]
-    Comment:
-      type: object
-      description: Created when a user want to react to an existing message with an emoji.
-      properties:
-        reacterId:
-          $ref: "#/components/schemas/UserID"
-        emoji:
-          type: string
-          description: The reaction chosen by the reacter when he/she comment a message. It can only be an emoji.
-          pattern: .*
-          minLength: 1
-          maxLength: 10
-      example:
-        reacterId: 
-          id: 54
-        emoji: 😋
-      required: [reacterId, emoji]
-    Partecipant:
-      description: A link which connect a user to a conversation.
-      allOf:
-        - $ref: "#/components/schemas/UserID"
-        - type: object
-          properties:
-            isPartOf:
-              $ref: "#/components/schemas/ConversationID"
-      example:
-        id: 459
-        isPartOf: 32
-      required: [id, isPartOf]
-    ImageUpload:
-      type: object
-      description: The way to upload an image, used for profile and group images.
-      properties: 
-        uploadedImage:
-          type: string
-          format: binary
-          description: The image binary file to upload, could be the profile image, the group image etc...
-          minLength: 1
-          maxLength: 13981014 #10MB circa
-      example:
-        uploadedImage: (binary image data)
-      required: [uploadedImage]
-  parameters:
-    userId:
-      in: path
-      name: userId
-      description: It's assigned to every user when he/she register.
-      schema:
-        $ref: "#/components/schemas/UserID"
-      required: true
-    conversationId:
-      in: path
-      name: conversationId
-      description: It's unique and it's assigned to every conversation when it is started/created.
-      schema:
-        $ref: "#/components/schemas/ConversationID"
-      required: true
-    messageId:
-      in: path
-      name: messageId
-      description: It's unique and created when a message is sent or forwarded.
-      schema:
-        $ref: "#/components/schemas/MessageID"
-      required: true
+          enum:
+            - info
+            - warning
+            - critical
+            - ""
+        title: { type: string }
+        message: { type: string }
+        url: { type: string }
+
+  responses:
+    Unauthorized:
+      description: The access token is missing or it's expired
+    BadRequest:
+      description: The request was not compliant with the documentation (eg. missing fields, etc)
+    InternalServerError:
+      description: The server encountered an internal error. Further info in server logs
+
   securitySchemes:
-      userAuth:
-        type: http
-        scheme: bearer
-        bearerFormat: int64
+    LegacyAuth:
+      type: apiKey
+      in: header
+      name: X-App-Token
+      description: |-
+        App session token value. This value is sent by the server in the login
+        and session refresh APIs.
+
+  parameters:
+    XAppVersion:
+      schema:
+        type: string
+        pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
+        minLength: 1
+        maxLength: 10
+      name: X-App-Version
+      in: header
+      required: true
+      description: App human readable version ("semantic version" format)
+      allowEmptyValue: false
+    XAppBuild:
+      schema: { type: integer }
+      name: X-App-Build
+      in: header
+      required: true
+      description: App build number
+      allowEmptyValue: false
+    XAppLanguage:
+      schema:
+        type: string
+        pattern: '^[a-z]{2}([-_][A-Z]{2})?$'
+        minLength: 2
+        maxLength: 5
+      name: X-App-Language
+      in: header
+      required: true
+      description: App language in ISO 639-1 format
+      allowEmptyValue: false
+    XAppPlatform:
+      schema:
+        type: string
+        enum: [ios, android]
+      name: X-App-Platform
+      in: header
+      required: true
+      description: App operating system / platform
+      allowEmptyValue: false
+    cat:
+      schema:
+        type: string
+        pattern: '^[a-zA-Z]+$'
+        minLength: 3
+        maxLength: 10
+      name: cat
+      in: path
+      required: true
+      description: Cat
+      allowEmptyValue: false
