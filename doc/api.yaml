@@ -1,10 +1,10 @@
-openapi: 3.0.4
+openapi: 3.0.3
 info:
   title: WASAText
   version: 1.0.0
 servers:
   - url: https://api.example.com/v1
-security: 
+security:
   - userAuth: []
 tags:
   - name: user
@@ -16,7 +16,7 @@ tags:
   - name: message
     description: Operations about message
 paths:
-  /session:  
+  /session:
     post:
       tags: [login]
       summary: Logs in the user
@@ -63,21 +63,21 @@ paths:
       tags: [user]
       summary: Gives all of the user conversations
       description: |-
-        Gets a preview of all the user conversations. This preview includes 
-        every attribute that a normal conversation has with the exception that 
+        Gets a preview of all the user conversations. This preview includes
+        every attribute that a normal conversation has with the exception that
         not all messages are obtained, just the latest one.
       operationId: getMyConversations
       parameters:
         - $ref: "#/components/parameters/userId"
       responses:
         "200":
-          description: Successfull operation
+          description: Successfully operation
           content:
             application/json:
               schema:
                 type: object
                 description: |-
-                  Represents all the direct conversations started and the 
+                  Represents all the direct conversations started and the
                   groups joined/created by the user.
                 properties:
                   conversations:
@@ -87,22 +87,22 @@ paths:
                     description: The array with all the conversations inside.
                     minItems: 0
                     maxItems: 999999
-                example: 
+                example:
                   conversations:
                     - id: 324
-                      name: Gruppo Calcio
+                      name: Soccer Group
                       image: https://example.com/image.png
                       type: group
-                      latestMessage: 
+                      latestMessage:
                         createdAt: 2025-11-03T17:30:00+01:00
                         body: https://example.com/icon.png
                     - id: 345
                       name: Luca
                       image: https://example.com/image.png
                       type: direct
-                      latestMessage: 
+                      latestMessage:
                         createdAt: 2025-12-03T17:30:00+01:00
-                        body: 
+                        body:
                           id: 34
                 required: [conversations]
   /users/{userId}/photo:
@@ -110,7 +110,7 @@ paths:
       tags: [user]
       summary: Updates user profile image
       description: |-
-        Replaces profile image with the new one. Returns the 
+        Replaces profile image with the new one. Returns the
         user resource with the url inside updated.
       operationId: setMyPhoto
       parameters:
@@ -134,12 +134,12 @@ paths:
       tags: [conversation]
       summary: Gives conversation details
       description: |-
-        Returns the resource "conversation" with all its properties. 
+        Returns the resource "conversation" with all its properties.
         See its schema for more info.
       operationId: getConversationDetails
       responses:
         "200":
-          description: Successfull operation
+          description: Successfully operation
           content:
             application/json:
                 schema:
@@ -147,8 +147,8 @@ paths:
     patch:
       tags: [conversation]
       summary: Updates group name
-      description: |- 
-        Changes the attribute "name" of the resource "conversation" 
+      description: |-
+        Changes the attribute "name" of the resource "conversation"
         with the new name in the body. It works only if the conversation is of type "group".
       operationId: setGroupName
       requestBody:
@@ -160,7 +160,7 @@ paths:
               properties:
                 name:
                   type: string
-                  example: Gruppo Calcio
+                  example: Soccer Group
                   description: The group name
                   pattern: '^.*?$'
                   minLength: 3
@@ -176,8 +176,8 @@ paths:
     put:
       tags: [conversation]
       summary: Updates group profile image
-      description: |- 
-        Replaces group image with the new one. Returns the 
+      description: |-
+        Replaces group image with the new one. Returns the
         conversation resource with the url inside updated. It works
         ONLY if the type attribute is group.
       operationId: setGroupPhoto
@@ -202,12 +202,12 @@ paths:
       tags: [conversation]
       summary: Gives all messages of a conversation
       description: |-
-        Returns all the messages recources associated 
+        Returns all the messages resources associated
         with the provided conversation.
       operationId: getConversation
       responses:
         "200":
-          description: Successfull operation
+          description: Successfully operation
           content:
             application/json:
                 schema:
@@ -225,18 +225,18 @@ paths:
                   example:
                     messageList:
                       - id: 56
-                        senderId: 
+                        senderId:
                           id: 43
-                        chatId: 
+                        chatId:
                           id: 40
                         content: Hello, how are you?
                         timeStamp: 2025-11-03T17:30:00+01:00
                         status: read
                         isForwarded: false
                       - id: 98
-                        senderId: 
+                        senderId:
                           id: 452
-                        chatId: 
+                        chatId:
                           id: 73
                         content: https://example.com/image.png
                         timeStamp: 2023-01-23T12:37:00+01:00
@@ -245,8 +245,8 @@ paths:
     post:
       tags: [conversation]
       summary: Sends a new message in a conversation
-      description: |- 
-        Creates a message resource associatede with the 
+      description: |-
+        Creates a message resource associated with the
         conversation the user is writing in and returns it.
       operationId: sendMessage
       requestBody:
@@ -262,15 +262,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/Message"
   /conversations/{conversationId}/partecipants:
-    post: 
+    post:
       tags: [conversation]
       summary: Adds a user to a group
       description: |-
-        Adds a partecipant resource linking the user with the 
-        ID provided to the conversation. 
+        Adds a participant resource linking the user with the
+        ID provided to the conversation.
         The conversation must be of type "group" to work.
       operationId: addToGroup
-      parameters: 
+      parameters:
         - $ref: "#/components/parameters/conversationId"
       requestBody:
         content:
@@ -287,16 +287,16 @@ paths:
           content:
             application/json:
                 schema:
-                  $ref: "#/components/schemas/Partecipant"
+                  $ref: "#/components/schemas/Participant"
   /conversations/{conversationId}/partecipants/{userId}:
     delete:
       tags: [conversation]
       summary: Removes logged-in user from a group
       description: |-
-        Deletes the partecipant resource associated with the user and the conversation in the path.
+        Deletes the participant resource associated with the user and the conversation in the path.
         The conversation must be of type "group" to work.
       operationId: leaveGroup
-      parameters: 
+      parameters:
         - $ref: "#/components/parameters/conversationId"
         - $ref: "#/components/parameters/userId"
       responses:
@@ -306,8 +306,8 @@ paths:
     post:
       tags: [message]
       summary: Forwards a message to another conversation
-      description: |- 
-        Copies only the body of the message with the id provided and sends it 
+      description: |-
+        Copies only the body of the message with the id provided and sends it
         as a new message resource to the conversation with the id provided.
       operationId: forwardMessage
       requestBody:
@@ -333,7 +333,7 @@ paths:
       tags: [message]
       summary: Deletes a message
       description: |-
-        Deletes a message resource. 
+        Deletes a message resource.
         Works only if the message is sent by the logged in user.
       operationId: deleteMessage
       parameters:
@@ -361,13 +361,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Comment"
-  /messages/{messageId}/comments/{userId}:  
+  /messages/{messageId}/comments/{userId}:
     delete:
       tags: [message]
       operationId: uncommentMessage
       summary: Deletes a comment
       description: |-
-        Deletes a comment resource from an existing message. 
+        Deletes a comment resource from an existing message.
         Works only if the comment is sent by the logged in user.
       parameters:
         - $ref: "#/components/parameters/messageId"
@@ -377,7 +377,7 @@ paths:
           description: Comment removed successfully
 components:
   schemas:
-    UserID: 
+    UserID:
       type: object
       description: It's assigned to every user when he/she register.
       properties:
@@ -394,14 +394,14 @@ components:
       type: object
       description: It's chosen by the user when he/she log in. It can be changed.
       properties:
-        name: 
+        name:
           type: string
           description: It's chosen by the user when he/she log in. It can be changed.
           pattern: .*
           minLength: 3
           maxLength: 16
-      example: 
-        name: Mario 
+      example:
+        name: Mario
     User:
       allOf:
         - $ref: "#/components/schemas/UserID"
@@ -412,7 +412,7 @@ components:
               type: string
               format: url
               description: The location of the profile image uploaded by the user.
-      example: 
+      example:
         id: 32
         name: Mario
         image: https://example.com/image.png
@@ -438,7 +438,7 @@ components:
             name:
               type: string
               description: |-
-                It can be the username of the person you are talking to, 
+                It can be the username of the person you are talking to,
                 or the group name chosen during its creation.
             image:
               type: string
@@ -449,33 +449,17 @@ components:
             type:
               type: string
               enum: [group, direct]
-              description: |- 
-                Represents if a conversation can be a group with more
-                than two partecipants or a direct one, with just two users.
-            latestMessage:
-              type: object
               description: |-
-                The most recent message sent in the conversation represented as 
-                its creation date-time and the body. It can be empty
-              properties:
-                createdAt:
-                  type: string
-                  format: date-time
-                  description: Represents when the message has been created.
-                body:
-                  anyOf:
-                    - $ref: "#/components/schemas/MessageID"
-                    - type: string
-                      format: url
-                  description: |- 
-                    It can be the text of the message or 
-                    a simple icon if the latest message is an image.
+                Represents if a conversation can be a group with more
+                than two participants or a direct one, with just two users.
+            latestMessage:
+              $ref: "#/components/schemas/MessageID"
       example:
         id: 324
-        name: Gruppo Calcio
+        name: Soccer Group
         image: https://example.com/image.png
         type: group
-        latestMessage: 
+        latestMessage:
           createdAt: 2025-11-03T17:30:00+01:00
           body: 435
       required: [id, name, image, type]
@@ -500,7 +484,7 @@ components:
             properties:
               senderId:
                 $ref: "#/components/schemas/UserID"
-              chatId:
+              conversationId:
                 $ref: "#/components/schemas/ConversationID"
               content:
                 anyOf:
@@ -516,10 +500,10 @@ components:
                     minLength: 8
                     maxLength: 100
                 description: It can be simple text, or the location of an image uploaded.
-              timeStamp:
+              timestamp:
                 type: string
                 format: date-time
-                description: The exact istant when the message is sent on the conversation.
+                description: The exact instant when the message is sent on the conversation.
                 minLength: 20
                 maxLength: 25
               status:
@@ -546,6 +530,8 @@ components:
       properties:
         reacterId:
           $ref: "#/components/schemas/UserID"
+        messageId:
+          $ref: "#/components/schemas/MessageID"
         emoji:
           type: string
           description: The reaction chosen by the reacter when he/she comment a message. It can only be an emoji.
@@ -553,11 +539,11 @@ components:
           minLength: 1
           maxLength: 10
       example:
-        reacterId: 
+        reacterId:
           id: 54
         emoji: 😋
       required: [reacterId, emoji]
-    Partecipant:
+    Participant:
       description: A link which connect a user to a conversation.
       allOf:
         - $ref: "#/components/schemas/UserID"
@@ -572,7 +558,7 @@ components:
     ImageUpload:
       type: object
       description: The way to upload an image, used for profile and group images.
-      properties: 
+      properties:
         uploadedImage:
           type: string
           format: binary
