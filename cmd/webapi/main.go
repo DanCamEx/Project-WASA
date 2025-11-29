@@ -99,10 +99,10 @@ func run() error {
 	// Start (main) API server
 	logger.Info("initializing API server")
 
-	// Make a channel to listen for an interrupt or terminate signal from the OS.
+	// Make a channel to listen for interrupt (Ctrl+C) or terminate signals from the OS.
 	// Use a buffered channel because the signal package requires it.
 	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, syscall.SIGTERM)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
 	// Make a channel to listen for errors coming from the listener. Use a
 	// buffered channel so the goroutine can exit if we don't collect this error.
@@ -152,12 +152,6 @@ func run() error {
 
 	case sig := <-shutdown:
 		logger.Infof("signal %v received, start shutdown", sig)
-
-		// Asking API server to shut down and load the shed.
-		err := apiRouter.Close()
-		if err != nil {
-			logger.WithError(err).Warning("graceful shutdown of apiRouter error")
-		}
 
 		// Give outstanding requests a deadline for completion.
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.Web.ShutdownTimeout)

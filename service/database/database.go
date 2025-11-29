@@ -32,11 +32,11 @@ func New(db *sql.DB) (AppDatabase, error) {
 	// Creates the database structure if it doesn't already exist.
 	sqlStmt := `
 		CREATE TABLE IF NOT EXISTS users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			id INTEGER PRIMARY KEY,
 			name TEXT, image TEXT
 		);
 		CREATE TABLE IF NOT EXISTS conversations (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			id INTEGER PRIMARY KEY,
 			name TEXT,
 			image TEXT,
 			type TEXT,
@@ -44,7 +44,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		    FOREIGN KEY(latest_message_id) REFERENCES messages(id)
 		);
 		CREATE TABLE IF NOT EXISTS messages (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			id INTEGER PRIMARY KEY,
 			sender_id INTEGER,
 			conversation_id INTEGER,
 			content TEXT,
@@ -55,15 +55,17 @@ func New(db *sql.DB) (AppDatabase, error) {
 			FOREIGN KEY(sender_id) REFERENCES users(id)
 		);
 		CREATE TABLE IF NOT EXISTS comments (
-			reacter_id INTEGER,
-			message_id INTEGER,
+			reacter_id INTEGER NOT NULL,
+			message_id INTEGER NOT NULL,
 			emoji TEXT,
+			PRIMARY KEY (reacter_id, message_id),
 			FOREIGN KEY(reacter_id) REFERENCES users(id),
 			FOREIGN KEY(message_id) REFERENCES messages(id)
 		);
 		CREATE TABLE IF NOT EXISTS participants (
-			user_id INTEGER,
-			conversation_id INTEGER,
+			user_id INTEGER NOT NULL,
+			conversation_id INTEGER NOT NULL,
+			PRIMARY KEY (user_id, conversation_id),
 			FOREIGN KEY(user_id) REFERENCES users(id),
 			FOREIGN KEY(conversation_id) REFERENCES conversations(id)
 		);

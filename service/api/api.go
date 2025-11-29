@@ -58,9 +58,6 @@ type Config struct {
 type Router interface {
 	// Handler returns an HTTP handler for APIs provided in this package
 	Handler() http.Handler
-
-	// Close terminates any resource used in the package
-	Close() error
 }
 
 // New returns a new Router instance
