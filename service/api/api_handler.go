@@ -8,6 +8,7 @@ import (
 func (rt *_router) Handler() http.Handler {
 
 	rt.router.POST("/session", rt.doLogin)
+	rt.router.PATCH("/users/:userId", rt.SetMyUserName)
 
 	return rt.router
 }
