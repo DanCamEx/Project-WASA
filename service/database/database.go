@@ -14,11 +14,22 @@ import (
 
 // AppDatabase is the high-level interface for the DB
 type AppDatabase interface {
-	GetIDByUserName(name string) (int, error)
+
+	// User-related methods
+	GetIdByUserName(name string) (int, error)
 	SetUserName(id int, name string) error
-	GetUserInfoByID(id int) (int, string, string, error)
-	CheckUserNameExists(name string) (bool, error)
-	Ping() error
+	GetUserInfoById(id int) (int, string, string, error)
+	CheckUserName(name string) (bool, error)
+	GetAllUsers() ([][2]string, error)
+	CheckUserId(userId int) (bool, error)
+
+	// Conversation-related methods
+	CreateDirConversation(creatorId int, participantId int) (int, error)
+	CheckConversation(conversationId int) (bool, error)
+
+	// Message-related methods
+	CreateMessage(senderId int, conversationId int, content string) (int, error)
+	GetMessage(id int) (int, int, int, string, string, string, bool, error)
 }
 
 type DbImpl struct {
@@ -36,14 +47,15 @@ func New(db *sql.DB) (AppDatabase, error) {
 	sqlStmt := `
 		CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY,
-			name TEXT, image TEXT
+			name TEXT, 
+			image TEXT
 		);
 		CREATE TABLE IF NOT EXISTS conversations (
 			id INTEGER PRIMARY KEY,
 			name TEXT,
 			image TEXT,
 			type TEXT,
-			latest_message_id INTEGER ,
+			latest_message_id INTEGER,
 		    FOREIGN KEY(latest_message_id) REFERENCES messages(id)
 		);
 		CREATE TABLE IF NOT EXISTS messages (
@@ -71,8 +83,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			PRIMARY KEY (user_id, conversation_id),
 			FOREIGN KEY(user_id) REFERENCES users(id),
 			FOREIGN KEY(conversation_id) REFERENCES conversations(id)
-		);
-	`
+		)`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
 		return nil, fmt.Errorf("error creating database structure: %w", err)
@@ -80,8 +91,4 @@ func New(db *sql.DB) (AppDatabase, error) {
 	return &DbImpl{
 		c: db,
 	}, nil
-}
-
-func (db *DbImpl) Ping() error {
-	return db.c.Ping()
 }

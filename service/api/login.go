@@ -20,18 +20,18 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	// Get or create user ID
-	userId, err := rt.db.GetIDByUserName(req.Name)
+	// Get or create user id by username
+	userId, err := rt.db.GetIdByUserName(req.Name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to get or create user ID")
+		logrus.Error("internal server error: failed to get or create user id")
 		return
 	}
 
-	// Set headers and respond with user ID
+	// Encode and respond with user id as JSON
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	logrus.Infof("user logged in with ID: %d", userId)
+	logrus.Infof("user logged in with id: %d", userId)
 	response := IdResponse{Id: userId}
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

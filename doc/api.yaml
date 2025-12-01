@@ -36,7 +36,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserID"
+                $ref: "#/components/schemas/UserId"
       security: []
   /users/{userId}:
     patch:
@@ -127,6 +127,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+  /users/{userId}/conversations/:
+    # TODO add POST to create a new conversation
+    delete:
+      tags: [conversation]
+      summary: Removes logged-in user from a group
+      description: |-
+        Deletes the participant resource associated with the user and the conversation in the path.
+        The conversation must be of type "group" to work.
+      operationId: leaveGroup
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+        - $ref: "#/components/parameters/userId"
+      responses:
+        "204":
+          description: User removed successfully
   /conversations/{conversationId}:
     parameters:
       - $ref: "#/components/parameters/conversationId"
@@ -227,19 +242,19 @@ paths:
                       - id: 56
                         senderId:
                           id: 43
-                        chatId:
+                        conversationId:
                           id: 40
                         content: Hello, how are you?
-                        timeStamp: 2025-11-03T17:30:00+01:00
+                        timestamp: 2025-11-03T17:30:00+01:00
                         status: read
                         isForwarded: false
                       - id: 98
                         senderId:
                           id: 452
-                        chatId:
+                        conversationId:
                           id: 73
                         content: https://example.com/image.png
-                        timeStamp: 2023-01-23T12:37:00+01:00
+                        timestamp: 2023-01-23T12:37:00+01:00
                         status: received
                         isForwarded: true
     post:
@@ -253,7 +268,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Message"
+              type: object
+              description: Object containing the message to send
+              properties:
+                messageToSend:
+                  type: string
+                  description: It can be simple text, or the location of an image uploaded.
+                  anyOf:
+                    - title: text
+                      type: string
+                      pattern: .*
+                      minLength: 1
+                      maxLength: 100
+                    - title: image
+                      type: string
+                      format: url
+                      pattern: ^[a-zA-Z]+://.+$
+                      minLength: 8
+                      maxLength: 100
       responses:
         "201":
           description: Message created successfully
@@ -261,13 +293,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
-  /conversations/{conversationId}/partecipants:
+  /conversations/{conversationId}/participants:
     post:
       tags: [conversation]
       summary: Adds a user to a group
       description: |-
         Adds a participant resource linking the user with the
-        ID provided to the conversation.
+        id provided to the conversation.
         The conversation must be of type "group" to work.
       operationId: addToGroup
       parameters:
@@ -277,10 +309,10 @@ paths:
           application/json:
             schema:
               type: object
-              description: Object containing the user ID to add
+              description: Object containing the user id to add
               properties:
                 userToAdd:
-                  $ref: "#/components/schemas/UserID"
+                  $ref: "#/components/schemas/UserId"
       responses:
         "201":
           description: User added successfully
@@ -288,20 +320,6 @@ paths:
             application/json:
                 schema:
                   $ref: "#/components/schemas/Participant"
-  /conversations/{conversationId}/partecipants/{userId}:
-    delete:
-      tags: [conversation]
-      summary: Removes logged-in user from a group
-      description: |-
-        Deletes the participant resource associated with the user and the conversation in the path.
-        The conversation must be of type "group" to work.
-      operationId: leaveGroup
-      parameters:
-        - $ref: "#/components/parameters/conversationId"
-        - $ref: "#/components/parameters/userId"
-      responses:
-        "204":
-          description: User removed successfully
   /messages:
     post:
       tags: [message]
@@ -315,12 +333,12 @@ paths:
           application/json:
             schema:
               type: object
-              description: Object containing the message ID and the conversation ID
+              description: Object containing the message id and the conversation id
               properties:
                 forwardedForm:
-                  $ref: "#/components/schemas/MessageID"
+                  $ref: "#/components/schemas/MessageId"
                 destinationId:
-                  $ref: "#/components/schemas/ConversationID"
+                  $ref: "#/components/schemas/ConversationId"
       responses:
         '201':
           description: Message forwarded successfully
@@ -353,7 +371,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Comment"
+              type: object
+              description: Object containing the emoji to comment
+              properties:
+                emoji:
+                  type: string
+                  description: |-
+                    The reaction chosen by the reacter when he/she comment a message. 
+                    It can only be an emoji. 
+                  pattern: .*
+                  minLength: 1
+                  maxLength: 10
       responses:
         '201':
           description: Comment added successfully
@@ -361,7 +389,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Comment"
-  /messages/{messageId}/comments/{userId}:
+  /messages/{messageId}/comments/:
     delete:
       tags: [message]
       operationId: uncommentMessage
@@ -371,13 +399,12 @@ paths:
         Works only if the comment is sent by the logged in user.
       parameters:
         - $ref: "#/components/parameters/messageId"
-        - $ref: "#/components/parameters/userId"
       responses:
         '204':
           description: Comment removed successfully
 components:
   schemas:
-    UserID:
+    UserId:
       type: object
       description: It's assigned to every user when he/she register.
       properties:
@@ -404,7 +431,7 @@ components:
         name: Mario
     User:
       allOf:
-        - $ref: "#/components/schemas/UserID"
+        - $ref: "#/components/schemas/UserId"
         - $ref: "#/components/schemas/UserName"
         - type: object
           properties:
@@ -417,7 +444,7 @@ components:
         name: Mario
         image: https://example.com/image.png
       required: [id, name, image]
-    ConversationID:
+    ConversationId:
       type: object
       description: It's unique and it's assigned to every conversation when it is started/created.
       properties:
@@ -432,7 +459,7 @@ components:
       required: [id]
     Conversation:
       allOf:
-        - $ref: "#/components/schemas/ConversationID"
+        - $ref: "#/components/schemas/ConversationId"
         - type: object
           properties:
             name:
@@ -453,7 +480,7 @@ components:
                 Represents if a conversation can be a group with more
                 than two participants or a direct one, with just two users.
             latestMessage:
-              $ref: "#/components/schemas/MessageID"
+              $ref: "#/components/schemas/MessageId"
       example:
         id: 324
         name: Soccer Group
@@ -463,7 +490,7 @@ components:
           createdAt: 2025-11-03T17:30:00+01:00
           body: 435
       required: [id, name, image, type]
-    MessageID:
+    MessageId:
       type: object
       description: It's unique and created when a message is sent or forwarded.
       properties:
@@ -479,13 +506,13 @@ components:
     Message:
       description: Created when a user write in a group or in a direct conversation.
       allOf:
-          - $ref: "#/components/schemas/MessageID"
+          - $ref: "#/components/schemas/MessageId"
           - type: object
             properties:
               senderId:
-                $ref: "#/components/schemas/UserID"
+                $ref: "#/components/schemas/UserId"
               conversationId:
-                $ref: "#/components/schemas/ConversationID"
+                $ref: "#/components/schemas/ConversationId"
               content:
                 anyOf:
                   - title: text
@@ -508,8 +535,8 @@ components:
                 maxLength: 25
               status:
                 type: string
-                enum: [read, sent, received]
-                description: Represents when the message has been read, received or just sent.
+                enum: [read, sent]
+                description: Represents when the message has been read or just sent.
                 minLength: 4
                 maxLength: 8
               isForwarded:
@@ -518,20 +545,20 @@ components:
       example:
         id: 56
         senderId: 43
-        chatId: 40
+        conversationId: 40
         content: Hello, how are you?
-        timeStamp: 2025-11-03T17:30:00+01:00
+        timestamp: 2025-11-03T17:30:00+01:00
         status: read
         isForwarded: false
-      required: [senderId, chatId, content, timeStamp, status, isForwarded]
+      required: [senderId, conversationId, content, timestamp, status, isForwarded]
     Comment:
       type: object
       description: Created when a user want to react to an existing message with an emoji.
       properties:
         reacterId:
-          $ref: "#/components/schemas/UserID"
+          $ref: "#/components/schemas/UserId"
         messageId:
-          $ref: "#/components/schemas/MessageID"
+          $ref: "#/components/schemas/MessageId"
         emoji:
           type: string
           description: The reaction chosen by the reacter when he/she comment a message. It can only be an emoji.
@@ -546,11 +573,11 @@ components:
     Participant:
       description: A link which connect a user to a conversation.
       allOf:
-        - $ref: "#/components/schemas/UserID"
+        - $ref: "#/components/schemas/UserId"
         - type: object
           properties:
             isPartOf:
-              $ref: "#/components/schemas/ConversationID"
+              $ref: "#/components/schemas/ConversationId"
       example:
         id: 459
         isPartOf: 32
@@ -564,7 +591,7 @@ components:
           format: binary
           description: The image binary file to upload, could be the profile image, the group image etc...
           minLength: 1
-          maxLength: 13981014 #10MB circa
+          maxLength: 13981014 # 10MB circa
       example:
         uploadedImage: (binary image data)
       required: [uploadedImage]
@@ -574,21 +601,21 @@ components:
       name: userId
       description: It's assigned to every user when he/she register.
       schema:
-        $ref: "#/components/schemas/UserID"
+        $ref: "#/components/schemas/UserId"
       required: true
     conversationId:
       in: path
       name: conversationId
       description: It's unique and it's assigned to every conversation when it is started/created.
       schema:
-        $ref: "#/components/schemas/ConversationID"
+        $ref: "#/components/schemas/ConversationId"
       required: true
     messageId:
       in: path
       name: messageId
       description: It's unique and created when a message is sent or forwarded.
       schema:
-        $ref: "#/components/schemas/MessageID"
+        $ref: "#/components/schemas/MessageId"
       required: true
   securitySchemes:
       userAuth:
