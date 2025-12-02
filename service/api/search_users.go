@@ -10,7 +10,7 @@ import (
 )
 
 // SearchUsers handles requests to search for all users in the system.
-func (rt *_router) SearchUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// Check authorization, ensure the token matches the user ID in the path
 	auth := r.Header.Get("Authorization")

@@ -11,7 +11,7 @@ import (
 )
 
 // CreateConversation handles requests to create a new direct conversation between two users.
-func (rt *_router) CreateConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// Check authorization, ensure the token matches the user ID in the path
 	auth := r.Header.Get("Authorization")
@@ -25,16 +25,16 @@ func (rt *_router) CreateConversation(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	// Decode participant ID and conversation type from request body
+	// Decode participants ids and conversation type from request body
 	var req CreateConversationRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: failed to decode participant id and conversation type from request body")
+		logrus.Warn("bad request: failed to decode participants ids and conversation type from request body")
 		return
 	}
 
-	// Parse user id and participant id from path to int
+	// Parse user id from path to int
 	var creatorId int
 	creatorId, err = strconv.Atoi(ps.ByName("userId"))
 	if err != nil {
@@ -43,35 +43,42 @@ func (rt *_router) CreateConversation(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	// Check participant id is not the same as creator id
-	if req.ParticipantId == creatorId {
-		http.Error(w, "cannot create conversation with oneself", http.StatusBadRequest)
-		logrus.Warn("bad request: cannot create conversation with oneself")
-		return
+	// Check participants ids are not the same as creator id
+	for _, participantId := range req.ParticipantIds {
+		if participantId == creatorId {
+			http.Error(w, "cannot create conversation with oneself", http.StatusBadRequest)
+			logrus.Warn("bad request: cannot create conversation with oneself")
+			return
+		}
 	}
 
-	// Check if participant exists
+	// Check if participants exist
 	var exists bool
-	exists, err = rt.db.CheckUserId(req.ParticipantId)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to check if participant exists")
-		return
-	}
-	if !exists {
-		http.Error(w, "participant user id does not exist", http.StatusNotFound)
-		logrus.Warnf("not found: participant user id %d does not exist", req.ParticipantId)
-		return
+	for _, participantId := range req.ParticipantIds {
+		exists, err = rt.db.CheckUserId(participantId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			logrus.Error("internal server error: failed to check if participant exists")
+			return
+		}
+		if !exists {
+			http.Error(w, "participant user id does not exist", http.StatusNotFound)
+			logrus.Warnf("not found: participant user id %d does not exist", participantId)
+			return
+		}
 	}
 
 	// Check conversation type and create conversation in the database
 	var conversationId int
 	if req.Type != "direct" {
-		http.Error(w, "unsupported conversation type", http.StatusBadRequest)
-		logrus.Warn("TODO: unsupported conversation type")
-		return
+		conversationId, err = rt.db.CreateGrpConversation(creatorId, req.ParticipantIds)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			logrus.Error("internal server error: failed to create group conversation")
+			return
+		}
 	} else {
-		conversationId, err = rt.db.CreateDirConversation(creatorId, req.ParticipantId)
+		conversationId, err = rt.db.CreateDirConversation(creatorId, req.ParticipantIds[0])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			logrus.Error("internal server error: failed to create direct conversation")
@@ -93,8 +100,8 @@ func (rt *_router) CreateConversation(w http.ResponseWriter, r *http.Request, ps
 }
 
 type CreateConversationRequest struct {
-	ParticipantId int    `json:"participantId"`
-	Type          string `json:"type"`
+	ParticipantIds []int  `json:"participantIds"`
+	Type           string `json:"type"`
 }
 
 type ConversationIdResponse struct {

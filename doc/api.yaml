@@ -161,7 +161,7 @@ paths:
                   $ref: "#/components/schemas/Conversation"
     patch:
       tags: [conversation]
-      summary: Updates group name
+      summary: Updates/Creates group name
       description: |-
         Changes the attribute "name" of the resource "conversation"
         with the new name in the body. It works only if the conversation is of type "group".

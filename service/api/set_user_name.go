@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// Check authorization, ensure the token matches the user id in the path
 	auth := r.Header.Get("Authorization")
@@ -70,7 +70,7 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// Encode and respond with updated user info
-	w.Header().Set("content-type", "application/merge-patch+json")
+	w.Header().Set("content-type", "application/json")
 	logrus.Infof("user %d name successfully updated", id)
 	response := UserInfoResponse{Id: userId, Name: name, Image: image}
 	err = json.NewEncoder(w).Encode(response)

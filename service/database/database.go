@@ -25,6 +25,8 @@ type AppDatabase interface {
 
 	// Conversation-related methods
 	CreateDirConversation(creatorId int, participantId int) (int, error)
+	CreateGrpConversation(creatorId int, participantIds []int) (int, error)
+	SetGroupName(conversationId int, name string) error
 	CheckConversation(conversationId int) (bool, error)
 
 	// Message-related methods
