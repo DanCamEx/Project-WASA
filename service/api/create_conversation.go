@@ -89,7 +89,7 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 	// Encode and respond with conversation id as JSON
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	logrus.Infof("direct conversation created with id: %d", conversationId)
+	logrus.Infof("conversation created with id: %d", conversationId)
 	response := ConversationIdResponse{Id: conversationId}
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
