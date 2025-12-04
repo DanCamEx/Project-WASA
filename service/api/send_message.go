@@ -1,86 +1,80 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 )
 
-func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
-	// Check authorization
-	auth := r.Header.Get("Authorization")
-	if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-		w.WriteHeader(http.StatusUnauthorized)
-		logrus.Warn("unauthorized access attempt")
-		return
-	}
-
-	// Parse sender id from token to int
-	senderId, err := strconv.Atoi(strings.TrimPrefix(auth, "Bearer "))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: could not convert user id in token to int")
-		return
-	}
+func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
+	senderId := ctx.UserId
 
 	// Decode message content from request body
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
 	var req SendMessageRequest
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err := dec.Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: failed to decode message content")
+		ctx.Logger.Warn("400 'Bad Request': failed to decode")
+
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Parse conversation id from path to int
-	var conversationId int
-	conversationId, err = strconv.Atoi(ps.ByName("conversationId"))
+	conversationId, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: could not convert conversation id in path to int")
+		ctx.Logger.Warn("400 'Bad Request': could not convert conversation id in path to int")
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Could not convert conversation id in path to int."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Check if conversation exists
-	var exists bool
-	exists, err = rt.db.CheckConversation(conversationId)
+	convExists, err := rt.db.CheckConversation(conversationId)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to check if conversation exists")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to check if conversation exists")
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if conversation exists."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
-	if !exists {
+	if !convExists {
 		w.WriteHeader(http.StatusNotFound)
-		logrus.Warnf("not found: conversation %s does not exist for user %d", ps.ByName("conversationId"), senderId)
+		ctx.Logger.Warnf("404 'Not Found': conversation %s does not exist for user %d", ps.ByName("conversationId"), senderId)
+		errRes := ErrorResponse{Code: "Not Found", Message: "Conversation does not exist."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Create message in the database
-	var messageId int
-	var content, timestamp, status string
-	var isForwarded bool
-	messageId, err = rt.db.CreateMessage(senderId, conversationId, req.Content)
+	messageId, err := rt.db.CreateMessage(senderId, conversationId, req.Content)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to create message")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to create message")
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to create message."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Encode and respond with message info as JSON
-	messageId, senderId, conversationId, content, timestamp, status, isForwarded, err = rt.db.GetMessage(messageId)
+	messageId, senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(messageId)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to get message")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to get message")
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get message."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	response := MessageInfoResponse{
+	// Encode and respond with conversation id as JSON.
+	var buf bytes.Buffer
+	res := MessageInfoResponse{
 		Id:             messageId,
 		SenderId:       senderId,
 		ConversationId: conversationId,
@@ -89,13 +83,20 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		Status:         status,
 		IsForwarded:    isForwarded,
 	}
-	err = json.NewEncoder(w).Encode(response)
+	err = json.NewEncoder(&buf).Encode(res)
+	w.Header().Set("content-type", "application/json")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to encode message info response")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to encode response")
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode response."}
+		EncodeErrResponse(w, errRes)
+		return
+	} else {
+		w.WriteHeader(http.StatusCreated)
+		w.Write(buf.Bytes())
+		ctx.Logger.Infof("201 'Created': message created with id: %d sent by user %d in conversation %d", messageId, senderId, conversationId)
 		return
 	}
-	logrus.Infof("message successfully sent in conversation %d by user %d", conversationId, senderId)
 }
 
 type SendMessageRequest struct {

@@ -1,45 +1,43 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 )
 
 // SearchUsers handles requests to search for all users in the system.
-func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
-	// Check authorization, ensure the token matches the user ID in the path
-	auth := r.Header.Get("Authorization")
-	if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-		w.WriteHeader(http.StatusUnauthorized)
-		logrus.Warn("unauthorized access attempt")
-		return
-	}
+func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 
 	// Retrieve all users from the database
 	info, err := rt.db.GetAllUsers()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to retrieve users from database")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to retrieve users from database")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to retrieve users from database."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Encode and send the user list as JSON response
-	response := make([]usersInfoNoID, 0, len(info))
+	res := make([]usersInfoNoID, 0, len(info))
 	for _, user := range info {
-		response = append(response, usersInfoNoID{Name: user[0], Image: user[1]})
+		res = append(res, usersInfoNoID{Name: user[0], Image: user[1]})
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	logrus.Info("users search successful")
-	err = json.NewEncoder(w).Encode(response)
+	w.Header().Set("content-type", "application/json")
+	var buf bytes.Buffer
+	err = json.NewEncoder(&buf).Encode(res)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to encode users response")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to encode response")
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write(buf.Bytes())
+		ctx.Logger.Info("200 'OK': users search successful")
 		return
 	}
 

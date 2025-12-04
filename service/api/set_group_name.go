@@ -4,32 +4,23 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 )
 
-func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 
-	// Check authorization, ensure the token matches the user id in the path
-	auth := r.Header.Get("Authorization")
-	if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-		w.WriteHeader(http.StatusUnauthorized)
-		logrus.Warn("unauthorized access attempt")
-		return
-	} else if strings.TrimPrefix(auth, "Bearer ") != ps.ByName("userId") {
-		w.WriteHeader(http.StatusForbidden)
-		logrus.Warn("forbidden access attempt")
-		return
-	}
+	
 
 	// Decode new group name from request body
 	var req NewGroupName
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: failed to decode new group name")
+		ctx.Logger.Warn("bad request: failed to decode new group name")
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode new group name."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 

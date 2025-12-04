@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 
@@ -12,32 +13,43 @@ import (
 func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// Decode login request
+	var dec = json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
 	var req LoginRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := dec.Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: failed to decode login request")
+		logrus.Warn("400 'Bad Request': failed to decode")
+
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Get or create user id by username
 	userId, err := rt.db.GetIdByUserName(req.Name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to get or create user id")
+		w.WriteHeader(http.StatusInternalServerError)
+		logrus.Error("500 'Internal Server Error': failed to get or create user id")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get or create user id."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Encode and respond with user id as JSON
 	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	logrus.Infof("user logged in with id: %d", userId)
-	response := IdResponse{Id: userId}
-	err = json.NewEncoder(w).Encode(response)
+	var buf bytes.Buffer
+	res := IdResponse{Id: userId}
+	err = json.NewEncoder(&buf).Encode(res)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to encode login response")
+		w.WriteHeader(http.StatusInternalServerError)
+		logrus.Error("500 'Internal Server Error': failed to encode response")
 		return
+	} else {
+		w.WriteHeader(http.StatusCreated)
+		w.Write(buf.Bytes())
+		logrus.Infof("201 'Created': user logged in with id: %d", userId)
 	}
 }
 

@@ -37,6 +37,7 @@ See the `main.go` file inside the `cmd/webapi` for a full usage example.
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -92,3 +93,21 @@ type _router struct {
 
 	db database.AppDatabase
 }
+
+// EncodeErrResponse encodes and writes an ErrorResponse as JSON to the http.ResponseWriter. If encoding fails, it
+// writes a 500 Internal Server Error status code.
+func EncodeErrResponse(w http.ResponseWriter, response ErrorResponse) {
+	w.Header().Set("content-type", "application/json")
+	err := json.NewEncoder(w).Encode(response)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		logrus.Error("500 'Internal Server Error': failed to encode error response")
+	}
+}
+
+// ErrorResponse represents the standard error response structure for the API.
+// It's used in requests when returning an error to the client.
+type ErrorResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}	

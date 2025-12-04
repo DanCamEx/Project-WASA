@@ -1,86 +1,77 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 )
 
-func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
+	userId := ctx.UserId
 
-	// Check authorization, ensure the token matches the user id in the path
-	auth := r.Header.Get("Authorization")
-	if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-		w.WriteHeader(http.StatusUnauthorized)
-		logrus.Warn("unauthorized access attempt")
-		return
-	} else if strings.TrimPrefix(auth, "Bearer ") != ps.ByName("userId") {
-		w.WriteHeader(http.StatusForbidden)
-		logrus.Warn("forbidden access attempt")
-		return
-	}
-
-	// Decode new username from request body and check if it already exists
+	// Decode new user name from request body and check if it already exists
 	var req NewUserName
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: failed to decode new username")
+		ctx.Logger.Warn("bad request: failed to decode new user name")
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode new user name."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
-	exists, err := rt.db.CheckUserName(req.Name)
+	nameExists, err := rt.db.CheckUserName(req.Name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to check if username exists")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("internal server error: failed to check if user name exists")
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if user name exists."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
-	if exists {
-		http.Error(w, "username already exists", http.StatusConflict)
-		logrus.Warn("conflict: username already exists")
+	if nameExists {
+		w.WriteHeader(http.StatusConflict)
+		ctx.Logger.Warn("conflict: user name already exists")
+		errRes := ErrorResponse{Code: "Conflict", Message: "User name already exists."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
-	// Parse user id from path to int
-	var id int
-	id, err = strconv.Atoi(ps.ByName("userId"))
+	// Update user name in the database
+	err = rt.db.SetUserName(userId, req.Name)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: could not convert user id in path to int")
-		return
-	}
-
-	// Update username in the database
-	err = rt.db.SetUserName(id, req.Name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to set new username")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("internal server error: failed to set new user name")
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to set new user name."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Retrieve updated user info
-	userId, name, image, err := rt.db.GetUserInfoById(id)
+	userId, name, image, err := rt.db.GetUserInfoById(userId)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to get user info")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("internal server error: failed to get user info")
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get user info."}
+		EncodeErrResponse(w, errRes)
 		return
 	}
 
 	// Encode and respond with updated user info
+	res := UserInfoResponse{Id: userId, Name: name, Image: image}
+	var buf bytes.Buffer
+	err = json.NewEncoder(&buf).Encode(res)
 	w.Header().Set("content-type", "application/json")
-	logrus.Infof("user %d name successfully updated", id)
-	response := UserInfoResponse{Id: userId, Name: name, Image: image}
-	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to encode user info response")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to encode response")
+		return
+	} else {
+		w.WriteHeader(http.StatusCreated)
+		w.Write(buf.Bytes())
+		ctx.Logger.Infof("201 'Created': user name updated for user id: %d", userId)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	logrus.Infof("user %d info obtained and response sent", id)
 }
 
 type NewUserName struct {

@@ -26,7 +26,7 @@ func (db *DbImpl) GetIdByUserName(name string) (int, error) {
 
 // SetUserName updates the user name for the given user id.
 func (db *DbImpl) SetUserName(id int, name string) error {
-
+	
 	_, err := db.c.Exec(`
 		UPDATE users SET name = ? WHERE id = ?
 	`, name, id)
