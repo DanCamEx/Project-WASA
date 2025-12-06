@@ -63,6 +63,7 @@ func (db *DbImpl) CreateGrpConversation(creatorId int, participantIds []int) (in
 	return conversationId, nil
 }
 
+// SetGroupName updates the name of the group conversation with the given id.
 func (db *DbImpl) SetGroupName(conversationId int, name string) error {
 	_, err := db.c.Exec(`
 		UPDATE conversations SET name = ? WHERE id = ?
@@ -70,13 +71,68 @@ func (db *DbImpl) SetGroupName(conversationId int, name string) error {
 	return err
 }
 
-// CheckConversation checks if a conversation with the given id exists.
-func (db *DbImpl) CheckConversation(conversationId int) (bool, error) {
+// CheckConversation checks if a conversation with the given id exists and the user is a participant.
+func (db *DbImpl) CheckConversation(conversationId int, userId int) (bool, error) {
 	var exists bool
 
 	err := db.c.QueryRow(`
-		SELECT EXISTS(SELECT 1 FROM conversations WHERE id = ?)
-	`, conversationId).Scan(&exists)
+		SELECT EXISTS(SELECT 1 FROM conversations c
+		JOIN participants p ON c.id = p.conversation_id
+		WHERE c.id = ? AND p.user_id = ?)
+	`, conversationId, userId).Scan(&exists)
 
 	return exists, err
+}
+
+func (db *DbImpl) GetConversation(conversationId int) (string, string, string, int, error) {
+	var name, image, convType string
+	var latestMessageId int
+	
+	err := db.c.QueryRow(`
+		SELECT name, image, type, latest_message_id
+		FROM conversations
+		WHERE id = ?
+	`, conversationId).Scan(&name, &image, &convType, &latestMessageId)
+
+	return name, image, convType, latestMessageId, err
+
+}
+
+func (db *DbImpl) CheckIfGroup(conversationId int) (bool, error) {
+	var isGroup bool
+
+	err := db.c.QueryRow(`
+		SELECT CASE WHEN type = 'group' THEN 1 ELSE 0 END
+		FROM conversations
+		WHERE id = ?
+	`, conversationId).Scan(&isGroup)
+
+	return isGroup, err
+}
+
+func (db *DbImpl) GetAllUserConversations(userId int) ([][]string, error) {
+	rows, err := db.c.Query(`
+		SELECT c.id, c.name, c.image, c.type, c.latest_message_id
+		FROM conversations c
+		JOIN participants p ON c.id = p.conversation_id
+		WHERE p.user_id = ?
+	`, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	var conversations [][]string
+	for rows.Next() {
+		var id, name, image, convType, latestMessageId string
+		err := rows.Scan(&id, &name, &image, &convType, &latestMessageId)
+		if err != nil {
+			return nil, err
+		}
+		conversations = append(conversations, []string{id, name, image, convType, latestMessageId})
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return conversations, nil
 }

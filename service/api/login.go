@@ -11,6 +11,7 @@ import (
 
 // doLogin handles user login requests.
 func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	emptyCtx := RequestContext{}
 
 	// Decode login request
 	var dec = json.NewDecoder(r.Body)
@@ -22,7 +23,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		logrus.Warn("400 'Bad Request': failed to decode")
 
 		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode."}
-		EncodeErrResponse(w, errRes)
+		EncodeErrResponse(w, errRes, emptyCtx)
 		return
 	}
 
@@ -33,20 +34,20 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 		logrus.Error("500 'Internal Server Error': failed to get or create user id")
 
 		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get or create user id."}
-		EncodeErrResponse(w, errRes)
+		EncodeErrResponse(w, errRes, emptyCtx)
 		return
 	}
 
 	// Encode and respond with user id as JSON
-	w.Header().Set("content-type", "application/json")
-	var buf bytes.Buffer
 	res := IdResponse{Id: userId}
+	var buf bytes.Buffer
 	err = json.NewEncoder(&buf).Encode(res)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		logrus.Error("500 'Internal Server Error': failed to encode response")
 		return
 	} else {
+		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		w.Write(buf.Bytes())
 		logrus.Infof("201 'Created': user logged in with id: %d", userId)

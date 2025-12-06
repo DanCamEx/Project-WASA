@@ -30,3 +30,20 @@ func (db *DbImpl) GetMessage(id int) (int, int, int, string, string, string, boo
 
 	return messageId, senderId, conversationId, content, timestamp, status, isForwarded, err
 }
+
+func (db *DbImpl) DeleteMessage(id int) error {
+	_, err := db.c.Exec(`
+		DELETE FROM messages WHERE id = ?
+	`, id)
+	return err
+}
+
+func (db *DbImpl) CheckMessage(id int, senderId int) (bool, error) {
+	var exists bool
+
+	err := db.c.QueryRow(`
+		SELECT EXISTS(SELECT 1 FROM messages WHERE id = ? AND sender_id = ?)
+	`, id, senderId).Scan(&exists)
+
+	return exists, err
+}

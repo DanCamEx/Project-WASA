@@ -40,7 +40,7 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 		auth := r.Header.Get("Authorization")
 		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
 			errRes = ErrorResponse{Code: "Unauthorized", Message: "Missing or invalid Bearer token."}
-			EncodeErrResponse(w, errRes)
+			EncodeErrResponse(w, errRes, ctx)
 			ctx.Logger.Warn("401 'Unauthorized': missing or invalid Bearer token")
 			return 
 		}
@@ -48,7 +48,7 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 		id, err := strconv.Atoi(idStr)
 		if err != nil { 
 			errRes = ErrorResponse{Code: "Unauthorized", Message: "Invalid user ID in Bearer token."}
-			EncodeErrResponse(w, errRes)
+			EncodeErrResponse(w, errRes, ctx)
 			ctx.Logger.Warn("401 'Unauthorized': invalid user ID in Bearer token")
 			return
 		}

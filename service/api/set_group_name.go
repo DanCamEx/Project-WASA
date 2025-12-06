@@ -1,50 +1,116 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 )
 
 func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
-
-	
-
 	// Decode new group name from request body
 	var req NewGroupName
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("bad request: failed to decode new group name")
+		ctx.Logger.Warn("400 'Bad Request': failed to decode new group name")
+
 		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode new group name."}
-		EncodeErrResponse(w, errRes)
+		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
 
 	// Parse conversation id from path to int
 	var conversationId int
-	conversationId, err = strconv.Atoi(ps.ByName("conversationId"))
+	conversationId, err = strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logrus.Warn("bad request: could not convert conversation id in path to int")
+		ctx.Logger.Warn("400 'Bad Request': could not convert conversation id in path to int")
+
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Could not convert conversation id in path to int."}
+		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
+
+	// Check if conversation is a group
+	isGroup, err := rt.db.CheckIfGroup(conversationId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to check if conversation is a group")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if conversation is a group."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+	if !isGroup {
+		w.WriteHeader(http.StatusBadRequest)
+		ctx.Logger.Warn("400 'Bad Request': conversation is not a group")
+
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Conversation is not a group."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+
 
 	// Update group name in the database
 	err = rt.db.SetGroupName(conversationId, req.Name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logrus.Error("internal server error: failed to set new group name")
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to set new group name")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to set new group name."}
+		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
-	//TODO RETURN CONVERSATION INFO
-	w.WriteHeader(http.StatusOK)
-	logrus.Info("group name update successful")
+	
+	// Get the updated conversation
+	name, image, convType, latestMessageId, err := rt.db.GetConversation(conversationId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to get updated conversation")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get updated conversation."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+
+	// Encode and respond with updated conversation info
+	res := UpdatedConversationResponse{
+		Id : conversationId, 
+		Name: name, 
+		Image: image, 
+		Type: convType, 
+		LatestMessageId: latestMessageId,
+	}
+	var buf bytes.Buffer
+
+	err = json.NewEncoder(&buf).Encode(res)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to encode updated conversation response")
+		
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode updated conversation response."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	} else {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		ctx.Logger.Info("200 'OK': group name update successful")
+		w.Write(buf.Bytes())
+		return
+	}
 }
 
 type NewGroupName struct {
 	Name string `json:"name"`
+}
+
+type UpdatedConversationResponse struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+	Image string `json:"image"`
+	Type string `json:"type"`
+	LatestMessageId int `json:"latest_message_id"`
 }

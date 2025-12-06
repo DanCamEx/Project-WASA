@@ -39,7 +39,7 @@ func (db *DbImpl) GetUserInfoById(id int) (int, string, string, error) {
 	var name, image string
 
 	err := db.c.QueryRow(`
-		SELECT name, COALESCE(image, '') FROM users WHERE id = ?
+		SELECT name, image FROM users WHERE id = ?
 	`, id).Scan(&name, &image)
 
 	return id, name, image, err
@@ -57,32 +57,25 @@ func (db *DbImpl) CheckUserName(name string) (bool, error) {
 }
 
 // GetAllUsers retrieves all users' names and images from the database.
-func (db *DbImpl) GetAllUsers() ([][2]string, error) {
-	var i int
-	var info [][2]string
-
+func (db *DbImpl) GetAllUsers() ([][]string, error) {
 	rows, err := db.c.Query(`
 		SELECT name, image FROM users
 	`)
 	if err != nil {
-		return info, err
+		return nil, err
 	}
+
+	var usersInfo [][]string
 	for rows.Next() {
 		var name, image string
-
-		if err = rows.Scan(&name, &image); err != nil {
-			rows.Close()
-			return info, err
+		err := rows.Scan(&name, &image)
+		if err != nil {
+			return nil, err
 		}
-		info = append(info, [2]string{name, image})
-		i++
+		usersInfo = append(usersInfo, []string{name, image})
 	}
-	if err = rows.Err(); err != nil {
-		return info, err
-	}
-
-	rows.Close()
-	return info, err
+	return usersInfo, nil
+	
 }
 
 func (db *DbImpl) CheckUserId(userId int) (bool, error) {

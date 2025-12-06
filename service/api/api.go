@@ -96,12 +96,12 @@ type _router struct {
 
 // EncodeErrResponse encodes and writes an ErrorResponse as JSON to the http.ResponseWriter. If encoding fails, it
 // writes a 500 Internal Server Error status code.
-func EncodeErrResponse(w http.ResponseWriter, response ErrorResponse) {
+func EncodeErrResponse(w http.ResponseWriter, response ErrorResponse, ctx RequestContext) {
 	w.Header().Set("content-type", "application/json")
 	err := json.NewEncoder(w).Encode(response)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		logrus.Error("500 'Internal Server Error': failed to encode error response")
+		ctx.Logger.Error("500 'Internal Server Error': failed to encode error response")
 	}
 }
 
