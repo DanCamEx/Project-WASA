@@ -25,24 +25,13 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	// Loop through conversations and convert to response format
-	// Parse string ids to int
-	var res []ConversationRes
+	// Parse latestMessageId to int
+	var res []ConversationResponse
 	for _, conv := range convs {
-		convId := conv[0]
-		convName := conv[1]
-		convImage := conv[2]
-		convType := conv[3]
-		latestMessageId := conv[4]
-
-		convIdInt, err := strconv.Atoi(convId)
-		if err != nil {
-			ctx.Logger.Error("500 'Internal Server Error': failed to convert conversation id to int")
-			w.WriteHeader(http.StatusInternalServerError)
-
-			errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to convert conversation id to int."}
-			EncodeErrResponse(w, errRes, ctx)
-			return
-		}
+		convName := conv[0]
+		convImage := conv[1]
+		convType := conv[2]
+		latestMessageId := conv[3]
 
 		latestMessageIdInt, err := strconv.Atoi(latestMessageId)
 		if err != nil {
@@ -54,11 +43,10 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 			return
 		}
 
-		res = append(res, ConversationRes{
-			Id:   convIdInt,
-			Name: convName,
-			Image: convImage,
-			Type: convType,
+		res = append(res, ConversationResponse{
+			Name:            convName,
+			Image:           convImage,
+			Type:            convType,
 			LatestMessageId: latestMessageIdInt,
 		})
 	}
@@ -83,10 +71,9 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 	}
 }
 
-type ConversationRes struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-	Image string `json:"image"`
-	Type string `json:"type"`
-	LatestMessageId int `json:"latest_message_id"`	
+type ConversationResponse struct {
+	Name            string `json:"name"`
+	Image           string `json:"image"`
+	Type            string `json:"type"`
+	LatestMessageId int    `json:"latestMessageId"`	
 }

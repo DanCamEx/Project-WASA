@@ -12,7 +12,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	userId := ctx.UserId
 
 	// Decode new user name from request body and check if it already exists
-	var req NewUserName
+	var req UserNameRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -50,7 +50,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// Retrieve updated user info
-	userId, name, image, err := rt.db.GetUserInfoById(userId)
+	name, image, err := rt.db.GetUser(userId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to get user info")
@@ -61,7 +61,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// Encode and respond with updated user info
-	res := UserInfoResponse{Id: userId, Name: name, Image: image}
+	res := UserResponse{Name: name, Image: image}
 	var buf bytes.Buffer
 	
 	err = json.NewEncoder(&buf).Encode(res)
@@ -81,12 +81,11 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	}
 }
 
-type NewUserName struct {
+type UserNameRequest struct {
 	Name string `json:"name"`
 }
 
-type UserInfoResponse struct {
-	Id    int    `json:"id"`
+type UserResponse struct {
 	Name  string `json:"name"`
 	Image string `json:"image"`
 }

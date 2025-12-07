@@ -78,10 +78,10 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 
 	// Encode and respond with updated conversation info
 	res := UpdatedConversationResponse{
-		Id : conversationId, 
-		Name: name, 
-		Image: image, 
-		Type: convType, 
+		Id:              conversationId, 
+		Name:            name, 
+		Image:           image, 
+		Type:            convType, 
 		LatestMessageId: latestMessageId,
 	}
 	var buf bytes.Buffer
@@ -108,9 +108,9 @@ type NewGroupName struct {
 }
 
 type UpdatedConversationResponse struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-	Image string `json:"image"`
-	Type string `json:"type"`
-	LatestMessageId int `json:"latest_message_id"`
+	Id              int    `json:"id"`
+	Name            string `json:"name"`
+	Image           string `json:"image"`
+	Type            string `json:"type"`
+	LatestMessageId int    `json:"latestMessageId"`
 }

@@ -11,12 +11,23 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 	senderId := ctx.UserId
 
 	// Parse message id from path to int
-	messageId, err := strconv.Atoi(ps.ByName("id"))
+	messageId, err := strconv.Atoi(ps.ByName("mid"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		ctx.Logger.Warn("400 'Bad Request': could not convert message id in path to int")
 
 		errRes := ErrorResponse{Code: "Bad Request", Message: "Could not convert message id in path to int."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+
+	// Parse conversation id from path to int
+	conversationId, err := strconv.Atoi(ps.ByName("cid"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		ctx.Logger.Warn("400 'Bad Request': could not convert conversation id in path to int")
+
+		errRes := ErrorResponse{Code: "Bad Request", Message: "Could not convert conversation id in path to int."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
@@ -47,6 +58,17 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 		ctx.Logger.Error("500 'Internal Server Error': failed to delete message")
 
 		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to delete message."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+
+	// Update latest message id for the conversation
+	err = rt.db.UpdateLatestMessageId(conversationId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to get conversation id by message id")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get conversation id by message id."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
 	}

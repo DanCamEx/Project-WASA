@@ -38,21 +38,40 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// Check if conversation exists and sender is a participant
-	convExists, err := rt.db.CheckConversation(conversationId, senderId)
+	// Check if conversation exists
+	conversationExists, err := rt.db.CheckConversation(conversationId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to check if conversation exists and sender is a participant")
+		ctx.Logger.Error("500 'Internal Server Error': failed to check if conversation exists")
 
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if conversation exists and sender is a participant."}
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if conversation exists."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
-	if !convExists {
+	if !conversationExists {
 		w.WriteHeader(http.StatusNotFound)
-		ctx.Logger.Warnf("404 'Not Found': conversation %d does not exist or sender %d is not a participant", conversationId, senderId)
+		ctx.Logger.Warnf("404 'Not Found': conversation %d does not exist", conversationId)
 		
-		errRes := ErrorResponse{Code: "Not Found", Message: "Conversation does not exist or sender is not a participant."}
+		errRes := ErrorResponse{Code: "Not Found", Message: "Conversation does not exist."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+
+	// Check if sender is a participant of the conversation
+	isParticipant, err := rt.db.CheckParticipant(conversationId, senderId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to check if sender is a participant of the conversation")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if sender is a participant of the conversation."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+	if !isParticipant {
+		w.WriteHeader(http.StatusForbidden)
+		ctx.Logger.Warnf("403 'Forbidden': sender %d is not a participant of conversation %d", senderId, conversationId)
+
+		errRes := ErrorResponse{Code: "Forbidden", Message: "Sender is not a participant of the conversation."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
@@ -68,8 +87,20 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
+	// Update conversation's latestMessageId
+	err = rt.db.UpdateLatestMessageId(conversationId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		ctx.Logger.Error("500 'Internal Server Error': failed to update conversation's latestMessageId")
+
+		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to update conversation's latestMessageId."}
+		EncodeErrResponse(w, errRes, ctx)
+		return
+	}
+
+
 	// Encode and respond with message info as JSON
-	messageId, senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(messageId)
+	senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(messageId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to get message")
@@ -79,8 +110,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 	// Encode and respond with conversation id as JSON.
-	res := MessageInfoResponse{
-		Id:             messageId,
+	res := MessageSentResponse{
 		SenderId:       senderId,
 		ConversationId: conversationId,
 		Content:        content,
@@ -110,8 +140,7 @@ type SendMessageRequest struct {
 	Content string `json:"content"`
 }
 
-type MessageInfoResponse struct {
-	Id             int    `json:"id"`
+type MessageSentResponse struct {
 	SenderId       int    `json:"senderId"`
 	ConversationId int    `json:"conversationId"`
 	Content        string `json:"content"`
