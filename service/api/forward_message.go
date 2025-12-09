@@ -88,7 +88,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// Encode new message and send response
-	senderId, conversationId, content, timestamp, status, isForwarded, err:= rt.db.GetMessage(newMessageId)
+	id, senderId, conversationId, content, timestamp, status, isForwarded, err:= rt.db.GetMessage(newMessageId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to get forwarded message details")
@@ -99,6 +99,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	res := ForwardMessageResponse{
+		Id:             id,
 		SenderId:		senderId,
 		ConversationId: conversationId,
 		Content:        content,
@@ -129,6 +130,7 @@ type ForwardMessageRequest struct {
 }
 
 type ForwardMessageResponse struct {
+	Id              int	      `json:"id"`
 	SenderId        int       `json:"senderId"`
 	ConversationId  int       `json:"conversationId"`
 	Content	        string    `json:"content"`

@@ -7,6 +7,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// uncommentMessage handles requests to remove a comment from a message.
 func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	commenterId := ctx.UserId
 

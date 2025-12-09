@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// sendMessage handles requests to send a message in a conversation.
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	senderId := ctx.UserId
 
@@ -39,7 +40,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	// Check if conversation exists
-	conversationExists, err := rt.db.CheckConversation(conversationId)
+	exists, err := rt.db.CheckConversation(conversationId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to check if conversation exists")
@@ -48,7 +49,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
-	if !conversationExists {
+	if !exists {
 		w.WriteHeader(http.StatusNotFound)
 		ctx.Logger.Warnf("404 'Not Found': conversation %d does not exist", conversationId)
 		
@@ -58,7 +59,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	// Check if sender is a participant of the conversation
-	isParticipant, err := rt.db.CheckParticipant(conversationId, senderId)
+	exists, err = rt.db.CheckParticipant(conversationId, senderId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to check if sender is a participant of the conversation")
@@ -67,7 +68,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
-	if !isParticipant {
+	if !exists {
 		w.WriteHeader(http.StatusForbidden)
 		ctx.Logger.Warnf("403 'Forbidden': sender %d is not a participant of conversation %d", senderId, conversationId)
 
@@ -100,7 +101,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 
 
 	// Encode and respond with message info as JSON
-	senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(messageId)
+	id, senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(messageId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to get message")
@@ -111,6 +112,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 	// Encode and respond with conversation id as JSON.
 	res := MessageSentResponse{
+		Id:             id,
 		SenderId:       senderId,
 		ConversationId: conversationId,
 		Content:        content,
@@ -141,6 +143,7 @@ type SendMessageRequest struct {
 }
 
 type MessageSentResponse struct {
+	Id 		       int    `json:"id"`
 	SenderId       int    `json:"senderId"`
 	ConversationId int    `json:"conversationId"`
 	Content        string `json:"content"`

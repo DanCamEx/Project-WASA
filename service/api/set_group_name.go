@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// setGroupName handles requests to set or update the name of a group conversation.
 func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	// Decode new group name from request body
 	var req NewGroupName
@@ -66,7 +67,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 	
 	// Get the updated conversation
-	name, image, convType, latestMessageId, err := rt.db.GetConversation(conversationId)
+	id, name, image, category, latestMessageId, err := rt.db.GetConversation(conversationId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to get updated conversation")
@@ -78,10 +79,10 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 
 	// Encode and respond with updated conversation info
 	res := UpdatedConversationResponse{
-		Id:              conversationId, 
+		Id:              id, 
 		Name:            name, 
 		Image:           image, 
-		Type:            convType, 
+		Category:        category, 
 		LatestMessageId: latestMessageId,
 	}
 	var buf bytes.Buffer
@@ -111,6 +112,6 @@ type UpdatedConversationResponse struct {
 	Id              int    `json:"id"`
 	Name            string `json:"name"`
 	Image           string `json:"image"`
-	Type            string `json:"type"`
+	Category        string `json:"category"`
 	LatestMessageId int    `json:"latestMessageId"`
 }

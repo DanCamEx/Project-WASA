@@ -8,11 +8,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// CreateConversation handles requests to create a new direct conversation between two users.
+// createConversation handles requests to create a new direct conversation between two users.
 func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	creatorId := ctx.UserId
 
-	// Decode participants ids and conversation type from request body
+	// Decode participants ids and conversation category from request body
 	var dec = json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	var req CreateConversationRequest
@@ -64,9 +64,9 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 		}
 	}
 
-	// Check conversation type and create conversation in the database
+	// Check conversation category and create conversation in the database
 	var conversationId int
-	if req.Type != "direct" {
+	if req.Category != "direct" {
 		conversationId, err = rt.db.CreateGrpConversation(creatorId, req.ParticipantIds)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -127,7 +127,7 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 
 type CreateConversationRequest struct {
 	ParticipantIds []int  `json:"participantIds"`
-	Type           string `json:"type"`
+	Category       string `json:"category"`
 }
 
 type ConversationIdResponse struct {

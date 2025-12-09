@@ -7,6 +7,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// deleteMessage handles requests to delete a message in a conversation.
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	senderId := ctx.UserId
 

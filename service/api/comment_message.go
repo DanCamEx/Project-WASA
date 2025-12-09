@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// commentMessage handles requests to add a comment to a message.
 func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	commenterId := ctx.UserId
 	// Decode comment text from request body

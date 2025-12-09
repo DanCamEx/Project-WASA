@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
 
-// CreateConversation handles requests to create a new direct conversation between two users.
+// getMyConversations handles requests to retrieve all conversations for the authenticated user.
 func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	userId := ctx.UserId
 
@@ -28,26 +27,19 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 	// Parse latestMessageId to int
 	var res []ConversationResponse
 	for _, conv := range convs {
-		convName := conv[0]
-		convImage := conv[1]
-		convType := conv[2]
-		latestMessageId := conv[3]
+		id := conv[0].(int)
+		name := conv[1].(string)
+		image := conv[2].(string)
+		category := conv[3].(string)
+		latestMessageId := conv[4].(int)
 
-		latestMessageIdInt, err := strconv.Atoi(latestMessageId)
-		if err != nil {
-			ctx.Logger.Error("500 'Internal Server Error': failed to convert conversation id to int")
-			w.WriteHeader(http.StatusInternalServerError)
-
-			errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to convert latest message id to int."}
-			EncodeErrResponse(w, errRes, ctx)
-			return
-		}
 
 		res = append(res, ConversationResponse{
-			Name:            convName,
-			Image:           convImage,
-			Type:            convType,
-			LatestMessageId: latestMessageIdInt,
+			Id:              id,
+			Name:            name,
+			Image:           image,
+			Category:        category,
+			LatestMessageId: latestMessageId,
 		})
 	}
 
@@ -72,8 +64,9 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 }
 
 type ConversationResponse struct {
+	Id 				int    `json:"id"`
 	Name            string `json:"name"`
 	Image           string `json:"image"`
-	Type            string `json:"type"`
+	Category        string `json:"category"`
 	LatestMessageId int    `json:"latestMessageId"`	
 }

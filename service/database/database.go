@@ -24,28 +24,29 @@ type AppDatabase interface {
 	CheckUserId(userId int) (exists bool, err error)
 
 	// Conversation-related methods
-	CreateDirConversation(creatorId int, participantId int) (conversationId int, err error)
-	CreateGrpConversation(creatorId int, participantIds []int) (conversationId int, err error)
-	SetGroupName(conversationId int, name string) error
-	CheckConversation(conversationId int) (conversationExists bool, err error)
-	GetConversation(conversationId int) (
-		name string, image string, conversationType string, 
+	CreateDirConversation(creatorId int, participantId int) (id int, err error)
+	CreateGrpConversation(creatorId int, participantIds []int) (id int, err error)
+	SetGroupName(id int, name string) error
+	CheckConversation(id int) (exists bool, err error)
+	GetConversation(idIn int) (
+		idOut int, name string, image string, category string, 
 		latestMessageId int, err error)
-	CheckIfGroup(conversationId int) (isGroup bool, err error)
-	GetAllUserConversations(userId int) (userConversations [][]string, err error)
-	CheckParticipant(conversationId int, userId int) (isParticipant bool, err error)
-	UpdateLatestMessageId(conversationId int) error
-	CheckParticipantByMessageId(messageId int, userId int) (isParticipant bool, err error)
+	CheckIfGroup(id int) (exists bool, err error)
+	GetAllUserConversations(userId int) (userConversations [][]any, err error)
+	CheckParticipant(id int, userId int) (exists bool, err error)
+	UpdateLatestMessageId(id int) error
+	CheckParticipantByMessageId(messageId int, userId int) (exists bool, err error)
+	GetConversationMessages(id int) (messages [][]any, err error)
 
 	// Message-related methods
-	CreateMessage(senderId int, conversationId int, content string) (messageId int, err error)
-	GetMessage(messageIdIn int) (
-		senderId int, conversationId int, content string, 
+	CreateMessage(senderId int, conversationId int, content string) (id int, err error)
+	GetMessage(idIn int) (
+		idOut int, senderId int, conversationId int, content string, 
 		timestamp string, status string, isForwarded bool, err error)
-	DeleteMessage(messageId int) error
-	CheckMessage(messageId int, senderId int) (exists bool, err error)
-	CheckMessageOnly(messageId int) (exists bool, err error)
-	ForwardMessage(senderId int, messageIdIn int, conversationId int) (messageIdOut int, err error)
+	DeleteMessage(id int) error
+	CheckMessage(id int, senderId int) (exists bool, err error)
+	CheckMessageOnly(id int) (exists bool, err error)
+	ForwardMessage(senderId int, idIn int, conversationId int) (idOut int, err error)
 
 	// Comment-related methods
 	CreateComment(messageId int, reacterId int, emojiIn string) (emojiOut string, err error)
@@ -76,7 +77,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
-			type TEXT NOT NULL DEFAULT '',
+			category TEXT NOT NULL DEFAULT '',
 			latest_message_id INTEGER NOT NULL DEFAULT 0,
 		    FOREIGN KEY(latest_message_id) REFERENCES messages(id)
 		);
@@ -87,7 +88,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			content TEXT NOT NULL DEFAULT '',
 			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			status TEXT NOT NULL DEFAULT '',
-			isForwarded BOOLEAN NOT NULL DEFAULT 0,
+			is_forwarded BOOLEAN NOT NULL DEFAULT 0,
 			FOREIGN KEY(conversation_id) REFERENCES conversations(id),
 			FOREIGN KEY(sender_id) REFERENCES users(id)
 		);

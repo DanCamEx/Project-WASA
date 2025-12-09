@@ -45,9 +45,11 @@ func (db *DbImpl) SetUserName(userId int, name string) error {
 func (db *DbImpl) GetUser(userId int) (userName string, userImage string, err error) {
 
 	err = db.c.QueryRow(`
+
 		SELECT name, image 
 		FROM users 
 		WHERE id = ?
+		
 	`, userId).Scan(&userName, &userImage)
 	return userName, userImage, err
 }
