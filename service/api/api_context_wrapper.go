@@ -34,22 +34,17 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 			"remote-ip": r.RemoteAddr,
 		})
 
-		// Checks the Authorization header for a valid Bearer token 
+		// Checks the Authorization header for a valid Bearer token.
 		// If valid extracts the user id and sets it in the context
-		var errRes ErrorResponse
 		auth := r.Header.Get("Authorization")
 		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-			errRes = ErrorResponse{Code: "Unauthorized", Message: "Missing or invalid Bearer token."}
-			EncodeErrResponse(w, errRes, ctx)
-			ctx.Logger.Warn("401 'Unauthorized': missing or invalid Bearer token")
-			return 
+			SendErrorResponse(w, ctx, http.StatusUnauthorized, "missing or invalid Authorization header")
+			return
 		}
-		idStr := strings.TrimPrefix(auth, "Bearer ")
-		id, err := strconv.Atoi(idStr)
-		if err != nil { 
-			errRes = ErrorResponse{Code: "Unauthorized", Message: "Invalid user ID in Bearer token."}
-			EncodeErrResponse(w, errRes, ctx)
-			ctx.Logger.Warn("401 'Unauthorized': invalid user ID in Bearer token")
+		strId := strings.TrimPrefix(auth, "Bearer ")
+		id, err := strconv.Atoi(strId)
+		if err != nil {
+			SendErrorResponse(w, ctx, http.StatusUnauthorized, "invalid user id in Authorization header")
 			return
 		}
 		ctx.UserId = id
@@ -69,7 +64,7 @@ type RequestContext struct {
 
 	// UserId is the authenticated user id for the request, or 0 if not authenticated
 	UserId int
-	
+
 	// Logger is a custom field logger for the request
 	Logger logrus.FieldLogger
 }

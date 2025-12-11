@@ -30,7 +30,7 @@ func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, ps httpro
 		res = append(res, usersInfoNoID{Name: userName, Image: userImage})
 	}
 	var buf bytes.Buffer
-	
+
 	err = json.NewEncoder(&buf).Encode(res)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

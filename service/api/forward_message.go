@@ -75,7 +75,6 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-
 	// Forward the message using the database method and get new message id
 	newMessageId, err := rt.db.ForwardMessage(messageId, senderId, req.ConversationId)
 	if err != nil {
@@ -88,7 +87,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// Encode new message and send response
-	id, senderId, conversationId, content, timestamp, status, isForwarded, err:= rt.db.GetMessage(newMessageId)
+	id, senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(newMessageId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to get forwarded message details")
@@ -100,7 +99,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 
 	res := ForwardMessageResponse{
 		Id:             id,
-		SenderId:		senderId,
+		SenderId:       senderId,
 		ConversationId: conversationId,
 		Content:        content,
 		Timestamp:      timestamp,
@@ -117,24 +116,29 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode forward message response."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
-	} else {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(buf.Bytes())
-		ctx.Logger.Infof("200 'OK': message %d forwarded successfully by user %d to conversation %d", messageId, senderId, req.ConversationId)
 	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		ctx.Logger.Error("500 'Internal Server Error': failed to write response")
+		return
+	}
+	ctx.Logger.Infof("200 'OK': message %d forwarded successfully by user %d to conversation %d", messageId, senderId, req.ConversationId)
+
 }
 
 type ForwardMessageRequest struct {
-	ConversationId  int       `json:"conversationId"`
+	ConversationId int `json:"conversationId"`
 }
 
 type ForwardMessageResponse struct {
-	Id              int	      `json:"id"`
-	SenderId        int       `json:"senderId"`
-	ConversationId  int       `json:"conversationId"`
-	Content	        string    `json:"content"`
-	Timestamp       string    `json:"timestamp"`
-	Status          string    `json:"status"`
-	IsForwarded     bool      `json:"isForwarded"`
+	Id             int    `json:"id"`
+	SenderId       int    `json:"senderId"`
+	ConversationId int    `json:"conversationId"`
+	Content        string `json:"content"`
+	Timestamp      string `json:"timestamp"`
+	Status         string `json:"status"`
+	IsForwarded    bool   `json:"isForwarded"`
 }

@@ -22,7 +22,6 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 		w.WriteHeader(http.StatusBadRequest)
 		ctx.Logger.Warn("400 'Bad Request': failed to decode create conversation request")
 
-
 		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode."}
 		EncodeErrResponse(w, errRes, ctx)
 
@@ -116,13 +115,17 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to encode response")
 		return
-	} else {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(buf.Bytes())
-		ctx.Logger.Infof("201 'Created': conversation created with id: %d", conversationId)
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		ctx.Logger.Error("500 'Internal Server Error': failed to write response")
 		return
 	}
+	ctx.Logger.Infof("201 'Created': conversation created with id: %d", conversationId)
+
 }
 
 type CreateConversationRequest struct {

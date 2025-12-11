@@ -99,7 +99,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 
 	// Send the comment created as json response
 	res := CommentMessageResponse{
-		Emoji:     emojiAdded,
+		Emoji: emojiAdded,
 	}
 	var buf bytes.Buffer
 
@@ -111,19 +111,23 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode response."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
-	} else {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(buf.Bytes())
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		ctx.Logger.Error("500 'Internal Server Error': failed to write response")
 		return
 	}
-	
+	ctx.Logger.Infof("200 'OK': comment added to message %d by user %d", messageId, commenterId)
+
 }
 
 type CommentMessageRequest struct {
 	Emoji string `json:"emoji"`
-}	
+}
 
 type CommentMessageResponse struct {
-	Emoji     string `json:"emoji"`
+	Emoji string `json:"emoji"`
 }

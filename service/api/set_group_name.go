@@ -54,7 +54,6 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-
 	// Update group name in the database
 	err = rt.db.SetGroupName(conversationId, req.Name)
 	if err != nil {
@@ -65,7 +64,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 		EncodeErrResponse(w, errRes, ctx)
 		return
 	}
-	
+
 	// Get the updated conversation
 	id, name, image, category, latestMessageId, err := rt.db.GetConversation(conversationId)
 	if err != nil {
@@ -79,10 +78,10 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 
 	// Encode and respond with updated conversation info
 	res := UpdatedConversationResponse{
-		Id:              id, 
-		Name:            name, 
-		Image:           image, 
-		Category:        category, 
+		Id:              id,
+		Name:            name,
+		Image:           image,
+		Category:        category,
 		LatestMessageId: latestMessageId,
 	}
 	var buf bytes.Buffer
@@ -91,7 +90,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		ctx.Logger.Error("500 'Internal Server Error': failed to encode updated conversation response")
-		
+
 		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode updated conversation response."}
 		EncodeErrResponse(w, errRes, ctx)
 		return

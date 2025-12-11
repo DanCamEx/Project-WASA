@@ -52,7 +52,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	if !exists {
 		w.WriteHeader(http.StatusNotFound)
 		ctx.Logger.Warnf("404 'Not Found': conversation %d does not exist", conversationId)
-		
+
 		errRes := ErrorResponse{Code: "Not Found", Message: "Conversation does not exist."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
@@ -99,7 +99,6 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-
 	// Encode and respond with message info as JSON
 	id, senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(messageId)
 	if err != nil {
@@ -143,7 +142,7 @@ type SendMessageRequest struct {
 }
 
 type MessageSentResponse struct {
-	Id 		       int    `json:"id"`
+	Id             int    `json:"id"`
 	SenderId       int    `json:"senderId"`
 	ConversationId int    `json:"conversationId"`
 	Content        string `json:"content"`

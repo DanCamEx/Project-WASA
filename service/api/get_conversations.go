@@ -33,7 +33,6 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 		category := conv[3].(string)
 		latestMessageId := conv[4].(int)
 
-
 		res = append(res, ConversationResponse{
 			Id:              id,
 			Name:            name,
@@ -53,20 +52,23 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode response."}
 		EncodeErrResponse(w, errRes, ctx)
 		return
-	} else {
-		w.Header().Set("content-type", "application/json")
-		w.Write(buf.Bytes())
+	}
 
-		ctx.Logger.Info("200 'OK': conversations retrieval successful")
-		w.WriteHeader(http.StatusOK)
+	w.Header().Set("content-type", "application/json")
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		ctx.Logger.Error("500 'Internal Server Error': failed to write response")
 		return
 	}
+	ctx.Logger.Info("200 'OK': conversations retrieval successful")
+	w.WriteHeader(http.StatusOK)
+
 }
 
 type ConversationResponse struct {
-	Id 				int    `json:"id"`
+	Id              int    `json:"id"`
 	Name            string `json:"name"`
 	Image           string `json:"image"`
 	Category        string `json:"category"`
-	LatestMessageId int    `json:"latestMessageId"`	
+	LatestMessageId int    `json:"latestMessageId"`
 }

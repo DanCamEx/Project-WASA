@@ -64,7 +64,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	// Encode and respond with updated user info
 	res := UserResponse{Name: name, Image: image}
 	var buf bytes.Buffer
-	
+
 	err = json.NewEncoder(&buf).Encode(res)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

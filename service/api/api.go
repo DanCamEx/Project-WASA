@@ -94,20 +94,39 @@ type _router struct {
 	db database.AppDatabase
 }
 
-// EncodeErrResponse encodes and writes an ErrorResponse as JSON to the http.ResponseWriter. If encoding fails, it
-// writes a 500 Internal Server Error status code.
-func EncodeErrResponse(w http.ResponseWriter, response ErrorResponse, ctx RequestContext) {
-	w.Header().Set("content-type", "application/json")
+// SendErrorResponse is a helper function to send a JSON error response with the given status code and message.
+func SendErrorResponse(w http.ResponseWriter, ctx RequestContext, statusCode int, errorMessage string) {
+	response := ErrorResponse{
+		Status:  http.StatusText(statusCode),
+		Code:    statusCode,
+		Message: errorMessage,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
 	err := json.NewEncoder(w).Encode(response)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to encode error response")
+		ctx.Logger.WithError(err).Error("failed to encode error response")
+		http.Error(w, "failed to encode error response", http.StatusInternalServerError)
+		return
 	}
+
+	ctx.Logger.WithFields(logrus.Fields{
+		"status": response.Status,
+		"code":   response.Code,
+	}).Error(response.Message)
+}
+
+// NewStrictDecoder creates a simple JSON decoder that disallows unknown fields.
+func NewStrictDecoder(r *http.Request) *json.Decoder {
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	return dec
 }
 
 // ErrorResponse represents the standard error response structure for the API.
 // It's used in requests when returning an error to the client.
 type ErrorResponse struct {
-	Code    string `json:"code"`
+	Status  string `json:"status"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
-}	
+}

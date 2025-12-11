@@ -1,87 +1,112 @@
 package database
 
+import "database/sql"
+
 // CreateMessage creates a new message in the specified conversation from the sender with the given content.
 // It returns the id of the newly created message.
-func (db *DbImpl) CreateMessage(senderId int, conversationId int, content string) (id int, err error) {
-
-	err = db.c.QueryRow(`
-
+func (db *DbImpl) CreateMessage(senderId int, conversationId int, content string) (int, error) {
+	var id int
+	if err := db.c.QueryRow(`
 		INSERT INTO messages (sender_id, conversation_id, content, status, is_forwarded) 
 		VALUES (?, ?, ?, 'sent', false) 
 		RETURNING id
-
-	`, senderId, conversationId, content).Scan(&id)
-	return id, err
+	`, senderId, conversationId, content).Scan(&id); err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 // GetMessage retrieves the message information for the given message id.
-// It returns the sender id, conversation id, content, timestamp, status, and isForwarded flag.
-func (db *DbImpl) GetMessage(idIn int) (idOut int, senderId int, conversationId int, content string, timestamp string, status string, isForwarded bool, err error) {
-
-	err = db.c.QueryRow(`
-
+// It returns the sender id, content, timestamp, status, and isForwarded flag.
+func (db *DbImpl) GetMessage(id int) (Message, error) {
+	var message Message
+	if err := db.c.QueryRow(`
 		SELECT id, sender_id, conversation_id, content, timestamp, status, is_forwarded 
 		FROM messages WHERE id = ?
-
-	`, idIn).Scan(&idOut, &senderId, &conversationId, &content, &timestamp, &status, &isForwarded)
-	return idOut, senderId, conversationId, content, timestamp, status, isForwarded, err
+	`, id).Scan(
+		&message.Id,
+		&message.SenderId,
+		&message.ConversationId,
+		&message.Content,
+		&message.Timestamp,
+		&message.Status,
+		&message.IsForwarded); err != nil {
+		return Message{}, err
+	}
+	return message, nil
 }
 
 // DeleteMessage deletes the message with the given id from the database.
 func (db *DbImpl) DeleteMessage(id int) error {
-	_, err := db.c.Exec(`
-
+	res, err := db.c.Exec(`
 		DELETE FROM messages
 		WHERE id = ?
-
 	`, id)
-	return err
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err == nil && rows == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 // CheckMessage checks if a message with the given id exists and was sent by the specified sender.
-func (db *DbImpl) CheckMessage(id int, senderId int) (exists bool, err error) {
-
-	err = db.c.QueryRow(`
-
+func (db *DbImpl) CheckMessage(id int, senderId int) (bool, error) {
+	var exists bool
+	if err := db.c.QueryRow(`
 		SELECT EXISTS(
 			SELECT 1 
 			FROM messages 
 			WHERE id = ? AND sender_id = ?)
-
-	`, id, senderId).Scan(&exists)
-	return exists, err
+	`, id, senderId).Scan(&exists); err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // CheckMessageOnly checks if a message with the given id exists in the database.
-func (db *DbImpl) CheckMessageOnly(id int) (exists bool, err error) {
-
-	err = db.c.QueryRow(`
-
+func (db *DbImpl) CheckMessageOnly(id int) (bool, error) {
+	var exists bool
+	if err := db.c.QueryRow(`
 		SELECT EXISTS(
 			SELECT 1 
 			FROM messages 
 			WHERE id = ?)
-
-	`, id).Scan(&exists)
-	return exists, err
+	`, id).Scan(&exists); err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // ForwardMessage creates a new message with flag isForwarded set to true, copying the content from the original message.
 // It returns the id of the newly created forwarded message.
-func (db *DbImpl) ForwardMessage(idIn int, senderId int, conversationId int) (idOut int, err error) {
+func (db *DbImpl) ForwardMessage(idIn int, senderId int, conversationId int) (int, error) {
 	var content string
-
-	// Get the original message using another func
-	_, _, _, content, _, _, _, err = db.GetMessage(idIn)
-	if err != nil { return idOut, err }
-
-	// Creates a new message using the original content but with new sender and flag updated
-	err = db.c.QueryRow(`
-
+	var message Message
+	message, err := db.GetMessage(idIn)
+	if err != nil {
+		return 0, err
+	}
+	content = message.Content
+	var idOut int
+	if err := db.c.QueryRow(`
 		INSERT INTO messages (sender_id, conversation_id, content, status, is_forwarded) 
 		VALUES (?, ?, ?, 'sent', true) 
 		RETURNING id
+	`, senderId, conversationId, content).Scan(&idOut); err != nil {
+		return 0, err
+	}
+	return idOut, nil
+}
 
-	`, senderId, conversationId, content).Scan(&idOut)
-	return idOut, err
+type Message struct {
+	Id             int    `json:"id"`
+	SenderId       int    `json:"senderId"`
+	ConversationId int    `json:"conversationId"`
+	Content        string `json:"content"`
+	Timestamp      string `json:"timestamp"`
+	Status         string `json:"status"`
+	IsForwarded    bool   `json:"isForwarded"`
 }

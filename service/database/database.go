@@ -16,43 +16,39 @@ import (
 type AppDatabase interface {
 
 	// User-related methods
-	GetIdByUserName(name string) (userId int, err error)
+	GetIdByUserName(name string) (int, error)
 	SetUserName(userId int, name string) error
-	GetUser(userId int) (userName string, userImage string, err error)
-	CheckUserName(name string) (exists bool, err error)
-	GetAllUsers() (users [][]string, err error)
-	CheckUserId(userId int) (exists bool, err error)
+	GetUser(userId int) (string, string, error)
+	CheckUserName(name string) (bool, error)
+	GetAllUsers() ([]User, error)
+	CheckUserId(userId int) (bool, error)
 
 	// Conversation-related methods
-	CreateDirConversation(creatorId int, participantId int) (id int, err error)
-	CreateGrpConversation(creatorId int, participantIds []int) (id int, err error)
+	CreateDirConversation(creatorId int, participantId int) (int, error)
+	CreateGrpConversation(creatorId int, participantIds []int) (int, error)
 	SetGroupName(id int, name string) error
-	CheckConversation(id int) (exists bool, err error)
-	GetConversation(idIn int) (
-		idOut int, name string, image string, category string, 
-		latestMessageId int, err error)
-	CheckIfGroup(id int) (exists bool, err error)
-	GetAllUserConversations(userId int) (userConversations [][]any, err error)
-	CheckParticipant(id int, userId int) (exists bool, err error)
+	CheckConversation(id int) (bool, error)
+	GetConversation(id int) (Conversation, error)
+	CheckIfGroup(id int) (bool, error)
+	GetAllUserConversations(userId int) ([]Conversation, error)
+	CheckParticipant(id int, userId int) (bool, error)
 	UpdateLatestMessageId(id int) error
-	CheckParticipantByMessageId(messageId int, userId int) (exists bool, err error)
-	GetConversationMessages(id int) (messages [][]any, err error)
+	CheckParticipantByMessageId(messageId int, userId int) (bool, error)
+	GetConversationMessages(id int) (messages []Message, err error)
 
 	// Message-related methods
-	CreateMessage(senderId int, conversationId int, content string) (id int, err error)
-	GetMessage(idIn int) (
-		idOut int, senderId int, conversationId int, content string, 
-		timestamp string, status string, isForwarded bool, err error)
+	CreateMessage(senderId int, conversationId int, content string) (int, error)
+	GetMessage(id int) (Message, error)
 	DeleteMessage(id int) error
-	CheckMessage(id int, senderId int) (exists bool, err error)
-	CheckMessageOnly(id int) (exists bool, err error)
-	ForwardMessage(senderId int, idIn int, conversationId int) (idOut int, err error)
+	CheckMessage(id int, senderId int) (bool, error)
+	CheckMessageOnly(id int) (bool, error)
+	ForwardMessage(id int, senderId int, conversationId int) (int, error)
 
 	// Comment-related methods
-	CreateComment(messageId int, reacterId int, emojiIn string) (emojiOut string, err error)
-	GetComment(messageIdIn int, reacterIdIn int) (messageIdOut int, reacterIdOut int, emoji string, err error)
+	CreateComment(messageId int, reacterId int, emoji string) (string, error)
+	GetComment(messageId int, reacterId int) (Comment, error)
 	DeleteComment(messageId int, reacterId int) error
-	CheckComment(messageId int, reacterId int) (exists bool, err error)
+	CheckComment(messageId int, reacterId int) (bool, error)
 }
 
 type DbImpl struct {
