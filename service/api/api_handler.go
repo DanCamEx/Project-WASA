@@ -6,7 +6,6 @@ import (
 
 // Handler returns an instance of httprouter.Router that handle APIs registered here
 func (rt *_router) Handler() http.Handler {
-
 	// login
 	rt.router.POST("/session", rt.doLogin)
 
@@ -20,6 +19,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PATCH("/conversations/:id", rt.wrap(rt.setGroupName))
 	rt.router.POST("/conversations/:id/messages", rt.wrap(rt.sendMessage))
 	rt.router.GET("/conversations/:id/messages", rt.wrap(rt.getConversation))
+	rt.router.POST("/conversations/:id/participants", rt.wrap(rt.addToGroup))
+	rt.router.DELETE("/conversations/:id/participants", rt.wrap(rt.leaveGroup))
 
 	// message
 	rt.router.DELETE("/conversations/:cid/messages/:mid", rt.wrap(rt.deleteMessage))

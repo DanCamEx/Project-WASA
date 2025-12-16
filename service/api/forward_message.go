@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -11,134 +10,56 @@ import (
 
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	senderId := ctx.UserId
-
-	// Decode conversation id where to forward the message
-	var dec = json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	var req ForwardMessageRequest
-
-	err := dec.Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("400 'Bad Request': failed to decode forward message request")
-
-		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode."}
-		EncodeErrResponse(w, errRes, ctx)
+	dec := NewStrictDecoder(r)
+	var forwardMessage struct {
+		ConversationId int `json:"conversationId"`
+	}
+	if err := dec.Decode(&forwardMessage); err != nil {
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "failed to decode forward message request")
 		return
 	}
 
-	// Parse message id from path to int
 	messageId, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("400 'Bad Request': could not convert message id in path to int")
-
-		errRes := ErrorResponse{Code: "Bad Request", Message: "Could not convert message id in path to int."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "could not convert message id in path to int or invalid format")
 		return
 	}
 
-	// Check if message exists
-	msgExists, err := rt.db.CheckMessageOnly(messageId)
+	exists, err := rt.db.CheckMessageOnly(messageId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to check if message exists")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if message exists."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check if message exists")
 		return
 	}
-	if !msgExists {
-		w.WriteHeader(http.StatusNotFound)
-		ctx.Logger.Warnf("404 'Not Found': message %d does not exist", messageId)
-
-		errRes := ErrorResponse{Code: "Not Found", Message: "Message does not exist."}
-		EncodeErrResponse(w, errRes, ctx)
+	if !exists {
+		SendErrorResponse(w, ctx, http.StatusNotFound, "message does not exist")
 		return
 	}
-	// Check if conversation exists
-	conversationExists, err := rt.db.CheckConversation(req.ConversationId)
+	exists, err = rt.db.CheckConversation(forwardMessage.ConversationId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to check if conversation exists")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if conversation exists."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check if conversation exists")
 		return
 	}
-	if !conversationExists {
-		w.WriteHeader(http.StatusNotFound)
-		ctx.Logger.Warnf("404 'Not Found': conversation %d does not exist", req.ConversationId)
-
-		errRes := ErrorResponse{Code: "Not Found", Message: "Conversation does not exist."}
-		EncodeErrResponse(w, errRes, ctx)
+	if !exists {
+		SendErrorResponse(w, ctx, http.StatusNotFound, "conversation does not exist")
 		return
 	}
 
-	// Forward the message using the database method and get new message id
-	newMessageId, err := rt.db.ForwardMessage(messageId, senderId, req.ConversationId)
+	newMessageId, err := rt.db.ForwardMessage(messageId, senderId, forwardMessage.ConversationId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to forward message")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to forward message."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to forward message")
 		return
 	}
 
-	// Encode new message and send response
-	id, senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(newMessageId)
+	message, err := rt.db.GetMessage(newMessageId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to get forwarded message details")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get forwarded message details."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get forwarded message details")
 		return
 	}
-
-	res := ForwardMessageResponse{
-		Id:             id,
-		SenderId:       senderId,
-		ConversationId: conversationId,
-		Content:        content,
-		Timestamp:      timestamp,
-		Status:         status,
-		IsForwarded:    isForwarded,
-	}
-	var buf bytes.Buffer
-
-	err = json.NewEncoder(&buf).Encode(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to encode forward message response")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode forward message response."}
-		EncodeErrResponse(w, errRes, ctx)
-		return
-	}
-
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(buf.Bytes())
-	if err != nil {
-		ctx.Logger.Error("500 'Internal Server Error': failed to write response")
+	if err = json.NewEncoder(w).Encode(message); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode forward message response")
 		return
 	}
-	ctx.Logger.Infof("200 'OK': message %d forwarded successfully by user %d to conversation %d", messageId, senderId, req.ConversationId)
-
-}
-
-type ForwardMessageRequest struct {
-	ConversationId int `json:"conversationId"`
-}
-
-type ForwardMessageResponse struct {
-	Id             int    `json:"id"`
-	SenderId       int    `json:"senderId"`
-	ConversationId int    `json:"conversationId"`
-	Content        string `json:"content"`
-	Timestamp      string `json:"timestamp"`
-	Status         string `json:"status"`
-	IsForwarded    bool   `json:"isForwarded"`
+	ctx.Logger.Infof("message %d forwarded successfully by user %d to conversation %d", messageId, senderId, forwardMessage.ConversationId)
 }

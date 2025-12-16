@@ -23,16 +23,16 @@ type Comment struct {
 
 // GetComment retrieves the comment (reaction) made by a user on a specific message.
 // It returns the message id, reacter id, and emoji of the comment.
-func (db *DbImpl) GetComment(messageIdIn int, reacterIdIn int) (Comment, error) {
+func (db *DbImpl) GetComment(messageIdIn int, reacterIdIn int) (*Comment, error) {
 	var comment Comment
 	if err := db.c.QueryRow(`
 		SELECT reacter_id, message_id, emoji 
 		FROM comments 
 		WHERE reacter_id = ? AND message_id = ?
 	`, reacterIdIn, messageIdIn).Scan(&comment.ReacterId, &comment.MessageId, &comment.Emoji); err != nil {
-		return Comment{}, err
+		return nil, err
 	}
-	return comment, nil
+	return &comment, nil
 }
 
 // DeleteComment removes the comment (reaction) made by a user on a specific message.

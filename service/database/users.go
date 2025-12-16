@@ -37,16 +37,16 @@ func (db *DbImpl) SetUserName(userId int, name string) error {
 }
 
 // GetUser retrieves the user information (name, image) for the given user id.
-func (db *DbImpl) GetUser(userId int) (string, string, error) {
-	var userName, userImage string
+func (db *DbImpl) GetUser(userId int) (User, error) {
+	var name, image string
 	if err := db.c.QueryRow(`
 		SELECT name, image 
 		FROM users 
 		WHERE id = ?
-	`, userId).Scan(&userName, &userImage); err != nil {
-		return "", "", err
+	`, userId).Scan(&name, &image); err != nil {
+		return User{}, err
 	}
-	return userName, userImage, nil
+	return User{Id: userId, Name: name, Image: image}, nil
 }
 
 // CheckUserName checks if a user name already exists in the database.
@@ -62,16 +62,10 @@ func (db *DbImpl) CheckUserName(name string) (bool, error) {
 	return exists, nil
 }
 
-// A small struct used as output for GetAllUsers method.
-type User struct {
-	Name  string
-	Image string
-}
-
 // GetAllUsers outputs all users existing in the database.
-func (db *DbImpl) GetAllUsers() ([]User, error) {
+func (db *DbImpl) GetAllUsers() (*[]User, error) {
 	rows, err := db.c.Query(`
-		SELECT name, image 
+		SELECT id, name, image 
 		FROM users
 	`)
 	if err != nil {
@@ -79,17 +73,18 @@ func (db *DbImpl) GetAllUsers() ([]User, error) {
 	}
 	defer rows.Close()
 	var users []User
+	var id int
 	var name, image string
 	for rows.Next() {
-		if err := rows.Scan(&name, &image); err != nil {
+		if err := rows.Scan(&id, &name, &image); err != nil {
 			return nil, err
 		}
-		users = append(users, User{Name: name, Image: image})
+		users = append(users, User{Id: id, Name: name, Image: image})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return users, nil
+	return &users, nil
 }
 
 // CheckUserId checks if a user with the given id exists in the database.
@@ -104,4 +99,10 @@ func (db *DbImpl) CheckUserId(userId int) (bool, error) {
 		return false, err
 	}
 	return exists, nil
+}
+
+type User struct {
+	Id    int    `json:"id"`
+	Name  string `json:"name"`
+	Image string `json:"image"`
 }

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -12,141 +11,60 @@ import (
 // sendMessage handles requests to send a message in a conversation.
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	senderId := ctx.UserId
-
-	// Decode message content from request body
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	var req SendMessageRequest
-
-	err := dec.Decode(&req)
+	dec := NewStrictDecoder(r)
+	var sendMessageRequest struct {
+		Content string `json:"content"`
+	}
+	err := dec.Decode(&sendMessageRequest)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("400 'Bad Request': failed to decode")
-
-		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode sendMessage request")
 		return
 	}
 
-	// Parse conversation id from path to int
 	conversationId, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("400 'Bad Request': could not convert conversation id in path to int")
-
-		errRes := ErrorResponse{Code: "Bad Request", Message: "Could not convert conversation id in path to int."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "failed to get conversation id from path or invalid format")
 		return
 	}
-
-	// Check if conversation exists
 	exists, err := rt.db.CheckConversation(conversationId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to check if conversation exists")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if conversation exists."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check if conversation exists")
 		return
 	}
 	if !exists {
-		w.WriteHeader(http.StatusNotFound)
-		ctx.Logger.Warnf("404 'Not Found': conversation %d does not exist", conversationId)
-
-		errRes := ErrorResponse{Code: "Not Found", Message: "Conversation does not exist."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "conversation doesn't exist")
 		return
 	}
-
-	// Check if sender is a participant of the conversation
 	exists, err = rt.db.CheckParticipant(conversationId, senderId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to check if sender is a participant of the conversation")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if sender is a participant of the conversation."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check if sender is a participant of the conversation")
 		return
 	}
 	if !exists {
-		w.WriteHeader(http.StatusForbidden)
-		ctx.Logger.Warnf("403 'Forbidden': sender %d is not a participant of conversation %d", senderId, conversationId)
-
-		errRes := ErrorResponse{Code: "Forbidden", Message: "Sender is not a participant of the conversation."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusNotFound, "sender is not a participant of the conversation")
 		return
 	}
 
-	// Create message in the database
-	messageId, err := rt.db.CreateMessage(senderId, conversationId, req.Content)
+	messageId, err := rt.db.CreateMessage(senderId, conversationId, sendMessageRequest.Content)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to create message")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to create message."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create the message in the database")
+		return
+	}
+	if err = rt.db.UpdateLatestMessageId(conversationId); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message id in the database")
 		return
 	}
 
-	// Update conversation's latestMessageId
-	err = rt.db.UpdateLatestMessageId(conversationId)
+	message, err := rt.db.GetMessage(messageId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to update conversation's latestMessageId")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to update conversation's latestMessageId."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to retrieve the created message from the database")
 		return
 	}
-
-	// Encode and respond with message info as JSON
-	id, senderId, conversationId, content, timestamp, status, isForwarded, err := rt.db.GetMessage(messageId)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to get message")
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get message."}
-
-		EncodeErrResponse(w, errRes, ctx)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err = json.NewEncoder(w).Encode(message); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode response")
 		return
 	}
-	// Encode and respond with conversation id as JSON.
-	res := MessageSentResponse{
-		Id:             id,
-		SenderId:       senderId,
-		ConversationId: conversationId,
-		Content:        content,
-		Timestamp:      timestamp,
-		Status:         status,
-		IsForwarded:    isForwarded,
-	}
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to encode response")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode response."}
-		EncodeErrResponse(w, errRes, ctx)
-		return
-	} else {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(buf.Bytes())
-		ctx.Logger.Infof("201 'Created': message created with id: %d sent by user %d in conversation %d", messageId, senderId, conversationId)
-		return
-	}
-}
-
-type SendMessageRequest struct {
-	Content string `json:"content"`
-}
-
-type MessageSentResponse struct {
-	Id             int    `json:"id"`
-	SenderId       int    `json:"senderId"`
-	ConversationId int    `json:"conversationId"`
-	Content        string `json:"content"`
-	Timestamp      string `json:"timestamp"`
-	Status         string `json:"status"`
-	IsForwarded    bool   `json:"isForwarded"`
+	ctx.Logger.Infof("message created with id: %d sent by user %d in conversation %d", messageId, senderId, conversationId)
 }

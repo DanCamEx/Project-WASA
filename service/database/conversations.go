@@ -45,21 +45,24 @@ func (db *DbImpl) CreateDirConversation(creatorId, participantId int) (int, erro
 func (db *DbImpl) CreateGrpConversation(creatorId int, participantIds []int) (int, error) {
 	var conversationId int
 	if err := db.c.QueryRow(`
-		WITH new_conversation AS (
-			INSERT INTO conversations (category) 
-			VALUES ('group') 
-			RETURNING id
-		)
-		INSERT INTO participants (user_id, conversation_id)
-		SELECT ?, id 
-		FROM new_conversation
+		INSERT INTO conversations (category) 
+		VALUES ('group') 
+		RETURNING id
 	`).Scan(&conversationId); err != nil {
 		return 0, err
+	}
+	if err := db.c.QueryRow(`
+		INSERT INTO participants (user_id, conversation_id) 
+		VALUES (?, ?) 
+		RETURNING conversation_id
+	`, creatorId, conversationId).Scan(&conversationId); err != nil {
+		return conversationId, err
 	}
 	for _, participantId := range participantIds {
 		_, err := db.c.Exec(`
 			INSERT INTO participants (user_id, conversation_id) 
 			VALUES (?, ?)
+			RETURNING conversation_id
 		`, participantId, conversationId)
 		if err != nil {
 			return conversationId, err
@@ -102,7 +105,7 @@ func (db *DbImpl) CheckConversation(conversationId int) (bool, error) {
 
 // GetConversation retrieves the conversation information for the given conversation id.
 // It returns the name, image, category, and latest message id of the conversation.
-func (db *DbImpl) GetConversation(conversationId int) (Conversation, error) {
+func (db *DbImpl) GetConversation(conversationId int) (*Conversation, error) {
 	var conversation Conversation
 	if err := db.c.QueryRow(`
 		SELECT id, name, image, category, latest_message_id
@@ -115,9 +118,9 @@ func (db *DbImpl) GetConversation(conversationId int) (Conversation, error) {
 		&conversation.Category,
 		&conversation.LatestMessageId,
 	); err != nil {
-		return Conversation{}, err
+		return nil, err
 	}
-	return conversation, nil
+	return &conversation, nil
 }
 
 // CheckIfGroup checks if the conversation with the given id is a group conversation.
@@ -134,7 +137,7 @@ func (db *DbImpl) CheckIfGroup(conversationId int) (bool, error) {
 }
 
 // GetAllUserConversations retrieves all conversations for the given user id.
-func (db *DbImpl) GetAllUserConversations(userId int) ([]Conversation, error) {
+func (db *DbImpl) GetAllUserConversations(userId int) (*[]Conversation, error) {
 	var conversations []Conversation
 	rows, err := db.c.Query(`
 		SELECT c.id, c.name, c.image, c.category, c.latest_message_id
@@ -163,24 +166,19 @@ func (db *DbImpl) GetAllUserConversations(userId int) ([]Conversation, error) {
 			return nil, err
 		}
 	}
-	return conversations, nil
+	return &conversations, nil
 }
 
 // UpdateLatestMessageId updates the latest message id of the conversation with the given id.
 func (db *DbImpl) UpdateLatestMessageId(conversationId int) error {
-	res, err := db.c.Exec(`
+	if _, err := db.c.Exec(`
 		UPDATE conversations
 		SET latest_message_id = (
 			SELECT MAX(id) FROM messages WHERE conversation_id = ?
 		)
 		WHERE id = ?
-	`, conversationId, conversationId)
-	if err != nil {
+	`, conversationId, conversationId); err != nil {
 		return err
-	}
-	rows, err := res.RowsAffected()
-	if err == nil && rows == 0 {
-		return sql.ErrNoRows
 	}
 	return nil
 }
@@ -217,7 +215,7 @@ func (db *DbImpl) CheckParticipantByMessageId(messageId int, userId int) (bool, 
 }
 
 // GetConversationMessages retrieves all the messages for the given conversation.
-func (db *DbImpl) GetConversationMessages(conversationIdIn int) ([]Message, error) {
+func (db *DbImpl) GetConversationMessages(conversationIdIn int) (*[]Message, error) {
 	rows, err := db.c.Query(`
 		SELECT id, sender_id, content, timestamp, status, is_forwarded
 		FROM messages
@@ -249,7 +247,27 @@ func (db *DbImpl) GetConversationMessages(conversationIdIn int) ([]Message, erro
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return messages, nil
+	return &messages, nil
+}
+
+func (db *DbImpl) AddParticipant(conversationId int, userId int) error {
+	if _, err := db.c.Exec(`
+		INSERT INTO participants (user_id, conversation_id) 
+		VALUES (?, ?)
+	`, userId, conversationId); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DbImpl) RemoveParticipant(conversationId int, userId int) error {
+	if _, err := db.c.Exec(`
+		DELETE FROM participants 
+		WHERE user_id = ? AND conversation_id = ?
+	`, userId, conversationId); err != nil {
+		return err
+	}
+	return nil
 }
 
 type Conversation struct {

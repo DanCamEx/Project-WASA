@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 
@@ -11,82 +10,40 @@ import (
 // setMyUserName handles requests to set or update the authenticated user's name.
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	userId := ctx.UserId
-
-	// Decode new user name from request body and check if it already exists
-	var req UserNameRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	dec := NewStrictDecoder(r)
+	var userName struct {
+		Name string `json:"name"`
+	}
+	err := dec.Decode(&userName)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("400 'Bad Request': failed to decode new user name")
-		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode new user name."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode updateUserName request")
 		return
 	}
-	nameExists, err := rt.db.CheckUserName(req.Name)
+
+	exists, err := rt.db.CheckUserName(userName.Name)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to check if user name exists")
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if user name exists."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check user name in db")
 		return
 	}
-	if nameExists {
-		w.WriteHeader(http.StatusConflict)
-		ctx.Logger.Warn("409 'Conflict': user name already exists")
-
-		errRes := ErrorResponse{Code: "Conflict", Message: "User name already exists."}
-		EncodeErrResponse(w, errRes, ctx)
+	if exists {
+		SendErrorResponse(w, ctx, http.StatusConflict, "another user with the same name already exists")
 		return
 	}
 
-	// Update user name in the database
-	err = rt.db.SetUserName(userId, req.Name)
+	if err = rt.db.SetUserName(userId, userName.Name); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to set new user name")
+		return
+	}
+	user, err := rt.db.GetUser(userId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to set new user name")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to set new user name."}
-		EncodeErrResponse(w, errRes, ctx)
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get updated user from database")
 		return
 	}
-
-	// Retrieve updated user info
-	name, image, err := rt.db.GetUser(userId)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to get user info")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to get user info."}
-		EncodeErrResponse(w, errRes, ctx)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err = json.NewEncoder(w).Encode(user); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode updated user response")
 		return
 	}
-
-	// Encode and respond with updated user info
-	res := UserResponse{Name: name, Image: image}
-	var buf bytes.Buffer
-
-	err = json.NewEncoder(&buf).Encode(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to encode response")
-
-		errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to encode response."}
-		EncodeErrResponse(w, errRes, ctx)
-		return
-	} else {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(buf.Bytes())
-		ctx.Logger.Infof("201 'Created': user name updated for user id: %d", userId)
-		return
-	}
-}
-
-type UserNameRequest struct {
-	Name string `json:"name"`
-}
-
-type UserResponse struct {
-	Name  string `json:"name"`
-	Image string `json:"image"`
+	ctx.Logger.Infof("user name updated for user id: %d", userId)
 }

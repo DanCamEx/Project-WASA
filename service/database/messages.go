@@ -18,7 +18,7 @@ func (db *DbImpl) CreateMessage(senderId int, conversationId int, content string
 
 // GetMessage retrieves the message information for the given message id.
 // It returns the sender id, content, timestamp, status, and isForwarded flag.
-func (db *DbImpl) GetMessage(id int) (Message, error) {
+func (db *DbImpl) GetMessage(id int) (*Message, error) {
 	var message Message
 	if err := db.c.QueryRow(`
 		SELECT id, sender_id, conversation_id, content, timestamp, status, is_forwarded 
@@ -31,9 +31,9 @@ func (db *DbImpl) GetMessage(id int) (Message, error) {
 		&message.Timestamp,
 		&message.Status,
 		&message.IsForwarded); err != nil {
-		return Message{}, err
+		return nil, err
 	}
-	return message, nil
+	return &message, nil
 }
 
 // DeleteMessage deletes the message with the given id from the database.
@@ -84,7 +84,7 @@ func (db *DbImpl) CheckMessageOnly(id int) (bool, error) {
 // It returns the id of the newly created forwarded message.
 func (db *DbImpl) ForwardMessage(idIn int, senderId int, conversationId int) (int, error) {
 	var content string
-	var message Message
+	var message *Message
 	message, err := db.GetMessage(idIn)
 	if err != nil {
 		return 0, err

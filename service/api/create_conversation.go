@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 
@@ -11,128 +10,61 @@ import (
 // createConversation handles requests to create a new direct conversation between two users.
 func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
 	creatorId := ctx.UserId
-
-	// Decode participants ids and conversation category from request body
-	var dec = json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	var req CreateConversationRequest
-
-	err := dec.Decode(&req)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("400 'Bad Request': failed to decode create conversation request")
-
-		errRes := ErrorResponse{Code: "Bad Request", Message: "Failed to decode."}
-		EncodeErrResponse(w, errRes, ctx)
-
-		w.WriteHeader(http.StatusBadRequest)
-		ctx.Logger.Warn("400 'Bad Request': failed to decode create conversation request")
+	dec := NewStrictDecoder(r)
+	var conversationRequest struct {
+		ParticipantIds []int  `json:"participantIds"`
+		Category       string `json:"category"`
+	}
+	if err := dec.Decode(&conversationRequest); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode createConversation request")
 		return
 	}
-
-	// Check participants ids are not the same as creator id
-	for _, participantId := range req.ParticipantIds {
+	for _, participantId := range conversationRequest.ParticipantIds {
 		if participantId == creatorId {
-			w.WriteHeader(http.StatusBadRequest)
-			ctx.Logger.Warn("400 'Bad Request': cannot create conversation with oneself")
-
-			errRes := ErrorResponse{Code: "Bad Request", Message: "Cannot create conversation with oneself."}
-			EncodeErrResponse(w, errRes, ctx)
+			SendErrorResponse(w, ctx, http.StatusBadRequest, "creator cannot be a participant in the conversation")
 			return
 		}
-	}
-
-	// Check if participants exist
-	for _, participantId := range req.ParticipantIds {
-		idExists, err := rt.db.CheckUserId(participantId)
+		exists, err := rt.db.CheckUserId(participantId)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			ctx.Logger.Error("500 'Internal Server Error': failed to check if participant exists")
-
-			errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to check if participant exists."}
-			EncodeErrResponse(w, errRes, ctx)
+			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check if participant user id exists")
 			return
 		}
-		if !idExists {
-			w.WriteHeader(http.StatusNotFound)
-			ctx.Logger.Warnf("404 'Not Found': participant user id %d does not exist", participantId)
-
-			errRes := ErrorResponse{Code: "Not Found", Message: "Participant user id does not exist."}
-			EncodeErrResponse(w, errRes, ctx)
+		if !exists {
+			SendErrorResponse(w, ctx, http.StatusNotFound, "participant user id does not exist")
 			return
 		}
 	}
-
-	// Check conversation category and create conversation in the database
-	var conversationId int
-	if req.Category != "direct" {
-		conversationId, err = rt.db.CreateGrpConversation(creatorId, req.ParticipantIds)
+	var conversationResponse struct {
+		Id int `json:"conversationId"`
+	}
+	var err error
+	switch conversationRequest.Category {
+	case "group":
+		conversationResponse.Id, err = rt.db.CreateGrpConversation(creatorId, conversationRequest.ParticipantIds)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			ctx.Logger.Error("500 'Internal Server Error': failed to create group conversation")
-
-			errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to create group conversation."}
-			EncodeErrResponse(w, errRes, ctx)
+			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create group conversation")
 			return
 		}
-	} else {
-		// Check that there is exactly one participant for direct conversations
-		if len(req.ParticipantIds) != 1 {
-			w.WriteHeader(http.StatusBadRequest)
-			ctx.Logger.Warn("400 'Bad Request': direct conversations must have exactly one participant")
-
-			errRes := ErrorResponse{Code: "Bad Request", Message: "Direct conversations must have exactly one participant."}
-			EncodeErrResponse(w, errRes, ctx)
+	case "direct":
+		if len(conversationRequest.ParticipantIds) != 1 {
+			SendErrorResponse(w, ctx, http.StatusBadRequest, "direct conversation must have exactly one participant")
 			return
 		}
-
-		// Check if a direct conversation between the two users already exists.
-		conversationId, err = rt.db.CreateDirConversation(creatorId, req.ParticipantIds[0])
+		conversationResponse.Id, err = rt.db.CreateDirConversation(creatorId, conversationRequest.ParticipantIds[0])
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			ctx.Logger.Error("500 'Internal Server Error': failed to create direct conversation")
-
-			errRes := ErrorResponse{Code: "Internal Server Error", Message: "Failed to create direct conversation."}
-			EncodeErrResponse(w, errRes, ctx)
+			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create direct conversation")
 			return
 		}
-		if conversationId == 0 {
-			w.WriteHeader(http.StatusConflict)
-			ctx.Logger.Warn("409 'Conflict': direct conversation between the two users already exists")
-
-			errRes := ErrorResponse{Code: "Conflict", Message: "Direct conversation between the two users already exists."}
-			EncodeErrResponse(w, errRes, ctx)
+		if conversationResponse.Id == 0 {
+			SendErrorResponse(w, ctx, http.StatusConflict, "direct conversation between these users already exists")
 			return
 		}
 	}
-
-	// Encode and respond with conversation id as JSON.
-	res := ConversationIdResponse{Id: conversationId}
-	var buf bytes.Buffer
-
-	err = json.NewEncoder(&buf).Encode(res)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		ctx.Logger.Error("500 'Internal Server Error': failed to encode response")
-		return
-	}
-
-	w.Header().Set("content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(buf.Bytes())
-	if err != nil {
-		ctx.Logger.Error("500 'Internal Server Error': failed to write response")
+	if err := json.NewEncoder(w).Encode(conversationResponse); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode create conversation response")
 		return
 	}
-	ctx.Logger.Infof("201 'Created': conversation created with id: %d", conversationId)
-
-}
-
-type CreateConversationRequest struct {
-	ParticipantIds []int  `json:"participantIds"`
-	Category       string `json:"category"`
-}
-
-type ConversationIdResponse struct {
-	Id int `json:"id"`
+	ctx.Logger.Infof("conversation created with id: %d", conversationResponse.Id)
 }

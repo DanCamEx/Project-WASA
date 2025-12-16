@@ -18,9 +18,9 @@ type AppDatabase interface {
 	// User-related methods
 	GetIdByUserName(name string) (int, error)
 	SetUserName(userId int, name string) error
-	GetUser(userId int) (string, string, error)
+	GetUser(userId int) (User, error)
 	CheckUserName(name string) (bool, error)
-	GetAllUsers() ([]User, error)
+	GetAllUsers() (*[]User, error)
 	CheckUserId(userId int) (bool, error)
 
 	// Conversation-related methods
@@ -28,17 +28,19 @@ type AppDatabase interface {
 	CreateGrpConversation(creatorId int, participantIds []int) (int, error)
 	SetGroupName(id int, name string) error
 	CheckConversation(id int) (bool, error)
-	GetConversation(id int) (Conversation, error)
+	GetConversation(id int) (*Conversation, error)
 	CheckIfGroup(id int) (bool, error)
-	GetAllUserConversations(userId int) ([]Conversation, error)
+	GetAllUserConversations(userId int) (*[]Conversation, error)
 	CheckParticipant(id int, userId int) (bool, error)
 	UpdateLatestMessageId(id int) error
 	CheckParticipantByMessageId(messageId int, userId int) (bool, error)
-	GetConversationMessages(id int) (messages []Message, err error)
+	GetConversationMessages(id int) (*[]Message, error)
+	AddParticipant(conversationId int, userId int) error
+	RemoveParticipant(conversationId int, userId int) error
 
 	// Message-related methods
 	CreateMessage(senderId int, conversationId int, content string) (int, error)
-	GetMessage(id int) (Message, error)
+	GetMessage(id int) (*Message, error)
 	DeleteMessage(id int) error
 	CheckMessage(id int, senderId int) (bool, error)
 	CheckMessageOnly(id int) (bool, error)
@@ -46,7 +48,7 @@ type AppDatabase interface {
 
 	// Comment-related methods
 	CreateComment(messageId int, reacterId int, emoji string) (string, error)
-	GetComment(messageId int, reacterId int) (Comment, error)
+	GetComment(messageId int, reacterId int) (*Comment, error)
 	DeleteComment(messageId int, reacterId int) error
 	CheckComment(messageId int, reacterId int) (bool, error)
 }
