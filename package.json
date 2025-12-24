@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@lineiconshq/free-icons": "^1.0.3",
+    "@lineiconshq/vue-lineicons": "^0.0.4"
+  }
+}

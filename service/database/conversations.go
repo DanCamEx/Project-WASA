@@ -3,44 +3,37 @@ package database
 import "database/sql"
 
 // CreateDirConversation checks if a direct conversation between two users exists, creates one if not, and returns its id.
-// The conversation category is set to 'direct'.
 // Both users are added as participants of the conversation in a separate table.
 func (db *DbImpl) CreateDirConversation(creatorId, participantId int) (int, error) {
+	var exists bool
 	var conversationId int
 	if err := db.c.QueryRow(`
-		WITH existing AS (
-			SELECT c.id
-			FROM conversations c
+		SELECT EXISTS(
+			SELECT 1 FROM conversations c
 			JOIN participants p1 ON c.id = p1.conversation_id
 			JOIN participants p2 ON c.id = p2.conversation_id
-			WHERE c.category = 'direct'
-			AND p1.user_id = ?
-			AND p2.user_id = ?
-		),
-		created AS (
-			INSERT INTO conversations (category)
-			SELECT 'direct'
-			WHERE NOT EXISTS (SELECT 1 FROM existing)
-			RETURNING id
-		),
-		chosen AS (
-			SELECT id FROM existing
-			UNION ALL
-			SELECT id FROM created
+			WHERE c.category = 'direct' AND p1.user_id = ? AND p2.user_id = ?
 		)
-		INSERT INTO participants (user_id, conversation_id)
-		SELECT ?, id FROM chosen                               
-		UNION ALL
-		SELECT ?, id FROM chosen                                                              
-		RETURNING id
-	`, creatorId, participantId, creatorId, participantId).Scan(&conversationId); err != nil {
+	`, creatorId, participantId).Scan(&exists); err != nil {
+		return 0, err
+	}
+	if exists {
+		return 0, nil
+	}
+	if err := db.c.QueryRow(`
+		INSERT INTO conversations (category) VALUES ('direct') RETURNING id
+	`).Scan(&conversationId); err != nil {
+		return 0, err
+	}
+	if _, err := db.c.Exec(`
+		INSERT INTO participants (user_id, conversation_id) VALUES (?, ?), (?, ?)
+	`, creatorId, conversationId, participantId, conversationId); err != nil {
 		return 0, err
 	}
 	return conversationId, nil
 }
 
 // CreateGrpConversation creates a new group conversation with the specified name and participants and returns its id.
-// The conversation category is set to 'group'.
 // Both the creator and participants are added as participants of the conversation in a separate table.
 func (db *DbImpl) CreateGrpConversation(creatorId int, participantIds []int) (int, error) {
 	var conversationId int
@@ -268,6 +261,19 @@ func (db *DbImpl) RemoveParticipant(conversationId int, userId int) error {
 		return err
 	}
 	return nil
+}
+
+func (db *DbImpl) GetOtherContact(userId, conversationId int) (int, error) {
+	var contactId int
+	if err := db.c.QueryRow(`
+		SELECT p.user_id
+		FROM participants p
+		WHERE p.conversation_id = ? AND p.user_id != ?
+		LIMIT 1
+	`, conversationId, userId).Scan(&contactId); err != nil {
+		return 0, err
+	}
+	return contactId, nil
 }
 
 type Conversation struct {

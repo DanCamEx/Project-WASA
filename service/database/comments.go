@@ -16,8 +16,8 @@ func (db *DbImpl) CreateComment(messageId int, reacterId int, emojiIn string) (s
 }
 
 type Comment struct {
-	ReacterId int    `json:"reacter_id"`
-	MessageId int    `json:"message_id"`
+	ReacterId int    `json:"reacterId"`
+	MessageId int    `json:"messageId"`
 	Emoji     string `json:"emoji"`
 }
 
@@ -63,4 +63,29 @@ func (db *DbImpl) CheckComment(messageId int, reacterId int) (bool, error) {
 		return false, err
 	}
 	return exists, nil
+}
+
+// GetAllCommentsByMessageId retrieves all comments for a specific message.
+func (db *DbImpl) GetAllCommentsByMessageId(messageId int) (*[]Comment, error) {
+	rows, err := db.c.Query(`
+		SELECT reacter_id, message_id, emoji 
+		FROM comments
+		WHERE message_id = ?
+	`, messageId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var comments []Comment
+	for rows.Next() {
+		var comment Comment
+		if err := rows.Scan(&comment.ReacterId, &comment.MessageId, &comment.Emoji); err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return &comments, nil
 }

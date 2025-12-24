@@ -51,7 +51,9 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	var emojiResponse struct {
-		Emoji string `json:"emoji"`
+		SenderId  int    `json:"sender_id"`
+		MessageId int    `json:"message_id"`
+		Emoji     string `json:"emoji"`
 	}
 	emojiResponse.Emoji, err = rt.db.CreateComment(messageId, commenterId, commentRequest.Emoji)
 	if err != nil {

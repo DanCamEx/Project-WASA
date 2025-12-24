@@ -8,7 +8,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// getConversation handles requests to retrieve messages from a specific conversation.
 func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
+	userId := ctx.UserId
 	conversationId, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid conversation id in path, or failed parse")
@@ -19,6 +21,14 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get messages from database")
 		return
+	}
+	for i := range *messages {
+		if (*messages)[i].SenderId != userId && (*messages)[i].Status == "sent" {
+			if err := rt.db.UpdateStatus((*messages)[i].Id); err != nil {
+				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update message status")
+				return
+			}
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

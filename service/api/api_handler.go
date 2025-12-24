@@ -10,8 +10,9 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/session", rt.doLogin)
 
 	// user
-	rt.router.GET("/users", rt.wrap(rt.searchUsers))
+	rt.router.GET("/users/search", rt.wrap(rt.searchUsers))
 	rt.router.PATCH("/users/me", rt.wrap(rt.setMyUserName))
+	rt.router.GET("/users", rt.wrap(rt.getUser))
 
 	// conversation
 	rt.router.POST("/users/me/conversations", rt.wrap(rt.createConversation))
@@ -23,10 +24,12 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/conversations/:id/participants", rt.wrap(rt.leaveGroup))
 
 	// message
-	rt.router.DELETE("/conversations/:cid/messages/:mid", rt.wrap(rt.deleteMessage))
+	rt.router.DELETE("/conversations/:id/messages/:id", rt.wrap(rt.deleteMessage))
 	rt.router.POST("/messages/:id", rt.wrap(rt.forwardMessage))
 	rt.router.POST("/messages/:id/comments", rt.wrap(rt.commentMessage))
 	rt.router.DELETE("/messages/:id/comments", rt.wrap(rt.uncommentMessage))
+	rt.router.GET("/messages/:id", rt.wrap(rt.getMessage))
+	rt.router.GET("/messages/:id/comments", rt.wrap(rt.getComments))
 
 	return rt.router
 }

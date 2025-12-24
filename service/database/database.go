@@ -37,6 +37,7 @@ type AppDatabase interface {
 	GetConversationMessages(id int) (*[]Message, error)
 	AddParticipant(conversationId int, userId int) error
 	RemoveParticipant(conversationId int, userId int) error
+	GetOtherContact(userId int, conversationId int) (int, error)
 
 	// Message-related methods
 	CreateMessage(senderId int, conversationId int, content string) (int, error)
@@ -45,12 +46,14 @@ type AppDatabase interface {
 	CheckMessage(id int, senderId int) (bool, error)
 	CheckMessageOnly(id int) (bool, error)
 	ForwardMessage(id int, senderId int, conversationId int) (int, error)
+	UpdateStatus(id int) error
 
 	// Comment-related methods
 	CreateComment(messageId int, reacterId int, emoji string) (string, error)
 	GetComment(messageId int, reacterId int) (*Comment, error)
 	DeleteComment(messageId int, reacterId int) error
 	CheckComment(messageId int, reacterId int) (bool, error)
+	GetAllCommentsByMessageId(messageId int) (*[]Comment, error)
 }
 
 type DbImpl struct {

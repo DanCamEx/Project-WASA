@@ -101,6 +101,23 @@ func (db *DbImpl) ForwardMessage(idIn int, senderId int, conversationId int) (in
 	return idOut, nil
 }
 
+// updateStatus updates the status of the message with the given id to 'read'.
+func (db *DbImpl) UpdateStatus(id int) error {
+	res, err := db.c.Exec(`
+			UPDATE messages 
+			SET status = 'read' 
+			WHERE id = ?
+		`, id)
+	if err != nil {
+		return err
+	}
+	rows, err := res.RowsAffected()
+	if err == nil && rows == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 type Message struct {
 	Id             int    `json:"id"`
 	SenderId       int    `json:"senderId"`

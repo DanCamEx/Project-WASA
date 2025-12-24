@@ -1,13 +1,25 @@
 import {createRouter, createWebHashHistory} from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import LoginPage from '../views/LoginPage.vue'
+import HomePage from '../views/HomePage.vue'
+import ConversationPage from '../views/ConversationPage.vue'
+import ForwardPage from '../views/ForwardPage.vue'
 
 const router = createRouter({
 	history: createWebHashHistory(import.meta.env.BASE_URL),
 	routes: [
-		{path: '/', component: HomeView},
-		{path: '/link1', component: HomeView},
-		{path: '/link2', component: HomeView},
-		{path: '/some/:id/link', component: HomeView},
+		{path: '/', redirect: '/login'},
+		{path: '/login', components: { left: LoginPage }},
+		{path: '/home', components: { left: HomePage }},
+		{path: '/conversations/:id', components: {
+			left: HomePage,
+			right: ConversationPage
+		}
+		},
+		{path: '/messages/:id/forward', components: {
+			left: ForwardPage,
+			right: ConversationPage
+		 }
+		},
 	]
 })
 

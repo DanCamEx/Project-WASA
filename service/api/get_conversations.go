@@ -15,7 +15,22 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get user conversations")
 		return
 	}
-
+	for i := range *conversations {
+		if (*conversations)[i].Category == "direct" {
+			otherUserId, err := rt.db.GetOtherContact(userId, (*conversations)[i].Id)
+			if err != nil {
+				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other contact in direct conversation")
+				return
+			}
+			otherUser, err := rt.db.GetUser(otherUserId)
+			if err != nil {
+				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other user info in direct conversation")
+				return
+			}
+			(*conversations)[i].Name = otherUser.Name
+			(*conversations)[i].Image = otherUser.Image
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(conversations); err != nil {

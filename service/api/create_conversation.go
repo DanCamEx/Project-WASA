@@ -35,7 +35,11 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 		}
 	}
 	var conversationResponse struct {
-		Id int `json:"conversationId"`
+		Id              int    `json:"id"`
+		Name            string `json:"name"`
+		Image           string `json:"image"`
+		Category        string `json:"category"`
+		LatestMessageId int    `json:"latestMessageId"`
 	}
 	var err error
 	switch conversationRequest.Category {
@@ -59,6 +63,18 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 			SendErrorResponse(w, ctx, http.StatusConflict, "direct conversation between these users already exists")
 			return
 		}
+		otherUserId, err := rt.db.GetOtherContact(creatorId, conversationResponse.Id)
+		if err != nil {
+			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other contact in direct conversation")
+			return
+		}
+		otherUser, err := rt.db.GetUser(otherUserId)
+		if err != nil {
+			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other user info in direct conversation")
+			return
+		}
+		conversationResponse.Name = otherUser.Name
+		conversationResponse.Image = otherUser.Image
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
