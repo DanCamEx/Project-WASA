@@ -37,13 +37,11 @@ See the `main.go` file inside the `cmd/webapi` for a full usage example.
 package api
 
 import (
-	"encoding/json"
 	"errors"
-	"net/http"
-
-	"github.com/DanCamEx/WASAText/service/database"
+	"github.com/DanCamEx/Project-WASA/service/database"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 // Config is used to provide dependencies and configuration to the New function.
@@ -59,6 +57,9 @@ type Config struct {
 type Router interface {
 	// Handler returns an HTTP handler for APIs provided in this package
 	Handler() http.Handler
+
+	// Close terminates any resource used in the package
+	Close() error
 }
 
 // New returns a new Router instance

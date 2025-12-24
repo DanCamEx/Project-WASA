@@ -1,13 +1,11 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
-	"strings"
-
+	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/gofrs/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 // httpRouterHandler is the signature for functions that accepts a reqcontext.RequestContext in addition to those
@@ -24,7 +22,7 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 			return
 		}
 
-		var ctx = RequestContext{
+		var ctx = reqcontext.RequestContext{
 			ReqUUID: reqUUID,
 		}
 
@@ -34,8 +32,7 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 			"remote-ip": r.RemoteAddr,
 		})
 
-		// Checks the Authorization header for a valid Bearer token.
-		// If valid extracts the user id and sets it in the context
+		// Check Authorization header
 		auth := r.Header.Get("Authorization")
 		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
 			SendErrorResponse(w, ctx, http.StatusUnauthorized, "missing or invalid Authorization header")
@@ -48,23 +45,9 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 			return
 		}
 		ctx.UserId = id
-
-		// Update the logger with the user id if the auth is successful
 		ctx.Logger = ctx.Logger.WithField("user-id", ctx.UserId)
 
 		// Call the next handler in chain (usually, the handler function for the path)
 		fn(w, r, ps, ctx)
 	}
-}
-
-// RequestContext is the context of the request, for request-dependent parameters
-type RequestContext struct {
-	// ReqUUID is the request unique ID
-	ReqUUID uuid.UUID
-
-	// UserId is the authenticated user id for the request, or 0 if not authenticated
-	UserId int
-
-	// Logger is a custom field logger for the request
-	Logger logrus.FieldLogger
 }

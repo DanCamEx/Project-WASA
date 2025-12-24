@@ -31,8 +31,7 @@ const RAW_RUNTIME_STATE =
           ["axios", "npm:0.28.0"],\
           ["vite", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:3.2.11"],\
           ["vue", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:3.5.6"],\
-          ["vue-router", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:4.4.5"],\
-          ["vue-toastification", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:1.7.14"]\
+          ["vue-router", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:4.4.5"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -1612,8 +1611,7 @@ const RAW_RUNTIME_STATE =
           ["axios", "npm:0.28.0"],\
           ["vite", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:3.2.11"],\
           ["vue", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:3.5.6"],\
-          ["vue-router", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:4.4.5"],\
-          ["vue-toastification", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:1.7.14"]\
+          ["vue-router", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:4.4.5"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -1733,28 +1731,6 @@ const RAW_RUNTIME_STATE =
           ["vue-router", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:4.4.5"],\
           ["@types/vue", null],\
           ["@vue/devtools-api", "npm:6.6.4"],\
-          ["vue", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:3.5.6"]\
-        ],\
-        "packagePeers": [\
-          "@types/vue",\
-          "vue"\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["vue-toastification", [\
-      ["npm:1.7.14", {\
-        "packageLocation": "./.yarn/cache/vue-toastification-npm-1.7.14-cf1e32c239-c1563dbaa3.zip/node_modules/vue-toastification/",\
-        "packageDependencies": [\
-          ["vue-toastification", "npm:1.7.14"]\
-        ],\
-        "linkType": "SOFT"\
-      }],\
-      ["virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:1.7.14", {\
-        "packageLocation": "./.yarn/__virtual__/vue-toastification-virtual-b3c78af389/0/cache/vue-toastification-npm-1.7.14-cf1e32c239-c1563dbaa3.zip/node_modules/vue-toastification/",\
-        "packageDependencies": [\
-          ["vue-toastification", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:1.7.14"],\
-          ["@types/vue", null],\
           ["vue", "virtual:1cba25b1f60f949a90be2c2cb29a6b4f9366aa091092950a3b449fa4cd4ec226263ceb0fd872c141b131285e267474987d80305279a07ec18ceb71fbdeb753ac#npm:3.5.6"]\
         ],\
         "packagePeers": [\
