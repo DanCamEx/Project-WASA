@@ -2,7 +2,6 @@
   <h1>Entra in WASAText!</h1>
   <input
     type="text"
-    class="form-control w-25"
     v-model="testo"
     placeholder="Inserisci il tuo nome utente..."
   />
