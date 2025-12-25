@@ -4,7 +4,7 @@ import "database/sql"
 
 // CreateMessage creates a new message in the specified conversation from the sender with the given content.
 // It returns the id of the newly created message.
-func (db *DbImpl) CreateMessage(senderId int, conversationId int, content string) (int, error) {
+func (db *appdbimpl) CreateMessage(senderId int, conversationId int, content string) (int, error) {
 	var id int
 	if err := db.c.QueryRow(`
 		INSERT INTO messages (sender_id, conversation_id, content, status, is_forwarded) 
@@ -18,7 +18,7 @@ func (db *DbImpl) CreateMessage(senderId int, conversationId int, content string
 
 // GetMessage retrieves the message information for the given message id.
 // It returns the sender id, content, timestamp, status, and isForwarded flag.
-func (db *DbImpl) GetMessage(id int) (*Message, error) {
+func (db *appdbimpl) GetMessage(id int) (*Message, error) {
 	var message Message
 	if err := db.c.QueryRow(`
 		SELECT id, sender_id, conversation_id, content, timestamp, status, is_forwarded 
@@ -37,7 +37,7 @@ func (db *DbImpl) GetMessage(id int) (*Message, error) {
 }
 
 // DeleteMessage deletes the message with the given id from the database.
-func (db *DbImpl) DeleteMessage(id int) error {
+func (db *appdbimpl) DeleteMessage(id int) error {
 	res, err := db.c.Exec(`
 		DELETE FROM messages
 		WHERE id = ?
@@ -53,7 +53,7 @@ func (db *DbImpl) DeleteMessage(id int) error {
 }
 
 // CheckMessage checks if a message with the given id exists and was sent by the specified sender.
-func (db *DbImpl) CheckMessage(id int, senderId int) (bool, error) {
+func (db *appdbimpl) CheckMessage(id int, senderId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
 		SELECT EXISTS(
@@ -67,7 +67,7 @@ func (db *DbImpl) CheckMessage(id int, senderId int) (bool, error) {
 }
 
 // CheckMessageOnly checks if a message with the given id exists in the database.
-func (db *DbImpl) CheckMessageOnly(id int) (bool, error) {
+func (db *appdbimpl) CheckMessageOnly(id int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
 		SELECT EXISTS(
@@ -82,7 +82,7 @@ func (db *DbImpl) CheckMessageOnly(id int) (bool, error) {
 
 // ForwardMessage creates a new message with flag isForwarded set to true, copying the content from the original message.
 // It returns the id of the newly created forwarded message.
-func (db *DbImpl) ForwardMessage(idIn int, senderId int, conversationId int) (int, error) {
+func (db *appdbimpl) ForwardMessage(idIn int, senderId int, conversationId int) (int, error) {
 	var content string
 	var message *Message
 	message, err := db.GetMessage(idIn)
@@ -102,7 +102,7 @@ func (db *DbImpl) ForwardMessage(idIn int, senderId int, conversationId int) (in
 }
 
 // updateStatus updates the status of the message with the given id to 'read'.
-func (db *DbImpl) UpdateStatus(id int) error {
+func (db *appdbimpl) UpdateStatus(id int) error {
 	res, err := db.c.Exec(`
 			UPDATE messages 
 			SET status = 'read' 

@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 )
 
 // setGroupName handles requests to set or update the name of a group conversation.
-func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
+func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	dec := NewStrictDecoder(r)
 	var groupName struct {
 		Name string `json:"name"`

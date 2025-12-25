@@ -37,11 +37,14 @@ See the `main.go` file inside the `cmd/webapi` for a full usage example.
 package api
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+
+	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/DanCamEx/Project-WASA/service/database"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 // Config is used to provide dependencies and configuration to the New function.
@@ -96,7 +99,7 @@ type _router struct {
 }
 
 // SendErrorResponse is a helper function to send a JSON error response with the given status code and message.
-func SendErrorResponse(w http.ResponseWriter, ctx RequestContext, statusCode int, errorMessage string) {
+func SendErrorResponse(w http.ResponseWriter, ctx reqcontext.RequestContext, statusCode int, errorMessage string) {
 	response := ErrorResponse{
 		Status:  http.StatusText(statusCode),
 		Code:    statusCode,

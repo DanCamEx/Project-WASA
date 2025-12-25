@@ -4,7 +4,7 @@ import "database/sql"
 
 // CreateDirConversation checks if a direct conversation between two users exists, creates one if not, and returns its id.
 // Both users are added as participants of the conversation in a separate table.
-func (db *DbImpl) CreateDirConversation(creatorId, participantId int) (int, error) {
+func (db *appdbimpl) CreateDirConversation(creatorId, participantId int) (int, error) {
 	var exists bool
 	var conversationId int
 	if err := db.c.QueryRow(`
@@ -35,7 +35,7 @@ func (db *DbImpl) CreateDirConversation(creatorId, participantId int) (int, erro
 
 // CreateGrpConversation creates a new group conversation with the specified name and participants and returns its id.
 // Both the creator and participants are added as participants of the conversation in a separate table.
-func (db *DbImpl) CreateGrpConversation(creatorId int, participantIds []int) (int, error) {
+func (db *appdbimpl) CreateGrpConversation(creatorId int, participantIds []int) (int, error) {
 	var conversationId int
 	if err := db.c.QueryRow(`
 		INSERT INTO conversations (category) 
@@ -66,7 +66,7 @@ func (db *DbImpl) CreateGrpConversation(creatorId int, participantIds []int) (in
 
 // SetGroupName updates the name of the group conversation with the given id.
 // It returns an error if the conversation does not exist.
-func (db *DbImpl) SetGroupName(conversationId int, name string) error {
+func (db *appdbimpl) SetGroupName(conversationId int, name string) error {
 	res, err := db.c.Exec(`
 		UPDATE conversations 
 		SET name = ? 
@@ -83,7 +83,7 @@ func (db *DbImpl) SetGroupName(conversationId int, name string) error {
 }
 
 // CheckConversation checks if a conversation with the given id exists.
-func (db *DbImpl) CheckConversation(conversationId int) (bool, error) {
+func (db *appdbimpl) CheckConversation(conversationId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
 		SELECT EXISTS(
@@ -98,7 +98,7 @@ func (db *DbImpl) CheckConversation(conversationId int) (bool, error) {
 
 // GetConversation retrieves the conversation information for the given conversation id.
 // It returns the name, image, category, and latest message id of the conversation.
-func (db *DbImpl) GetConversation(conversationId int) (*Conversation, error) {
+func (db *appdbimpl) GetConversation(conversationId int) (*Conversation, error) {
 	var conversation Conversation
 	if err := db.c.QueryRow(`
 		SELECT id, name, image, category, latest_message_id
@@ -117,7 +117,7 @@ func (db *DbImpl) GetConversation(conversationId int) (*Conversation, error) {
 }
 
 // CheckIfGroup checks if the conversation with the given id is a group conversation.
-func (db *DbImpl) CheckIfGroup(conversationId int) (bool, error) {
+func (db *appdbimpl) CheckIfGroup(conversationId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
 		SELECT CASE WHEN category = 'group' THEN 1 ELSE 0 END
@@ -130,7 +130,7 @@ func (db *DbImpl) CheckIfGroup(conversationId int) (bool, error) {
 }
 
 // GetAllUserConversations retrieves all conversations for the given user id.
-func (db *DbImpl) GetAllUserConversations(userId int) (*[]Conversation, error) {
+func (db *appdbimpl) GetAllUserConversations(userId int) (*[]Conversation, error) {
 	var conversations []Conversation
 	rows, err := db.c.Query(`
 		SELECT c.id, c.name, c.image, c.category, c.latest_message_id
@@ -163,7 +163,7 @@ func (db *DbImpl) GetAllUserConversations(userId int) (*[]Conversation, error) {
 }
 
 // UpdateLatestMessageId updates the latest message id of the conversation with the given id.
-func (db *DbImpl) UpdateLatestMessageId(conversationId int) error {
+func (db *appdbimpl) UpdateLatestMessageId(conversationId int) error {
 	if _, err := db.c.Exec(`
 		UPDATE conversations
 		SET latest_message_id = (
@@ -177,7 +177,7 @@ func (db *DbImpl) UpdateLatestMessageId(conversationId int) error {
 }
 
 // CheckParticipant checks if the user with the given id is a participant of the conversation with the given id.
-func (db *DbImpl) CheckParticipant(conversationId int, userId int) (bool, error) {
+func (db *appdbimpl) CheckParticipant(conversationId int, userId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
 		SELECT EXISTS(
@@ -192,7 +192,7 @@ func (db *DbImpl) CheckParticipant(conversationId int, userId int) (bool, error)
 
 // CheckParticipantByMessageId checks if the user with the given id is a participant of the conversation
 // that contains the message with the given id.
-func (db *DbImpl) CheckParticipantByMessageId(messageId int, userId int) (bool, error) {
+func (db *appdbimpl) CheckParticipantByMessageId(messageId int, userId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
 		SELECT EXISTS(
@@ -208,7 +208,7 @@ func (db *DbImpl) CheckParticipantByMessageId(messageId int, userId int) (bool, 
 }
 
 // GetConversationMessages retrieves all the messages for the given conversation.
-func (db *DbImpl) GetConversationMessages(conversationIdIn int) (*[]Message, error) {
+func (db *appdbimpl) GetConversationMessages(conversationIdIn int) (*[]Message, error) {
 	rows, err := db.c.Query(`
 		SELECT id, sender_id, content, timestamp, status, is_forwarded
 		FROM messages
@@ -243,7 +243,7 @@ func (db *DbImpl) GetConversationMessages(conversationIdIn int) (*[]Message, err
 	return &messages, nil
 }
 
-func (db *DbImpl) AddParticipant(conversationId int, userId int) error {
+func (db *appdbimpl) AddParticipant(conversationId int, userId int) error {
 	if _, err := db.c.Exec(`
 		INSERT INTO participants (user_id, conversation_id) 
 		VALUES (?, ?)
@@ -253,7 +253,7 @@ func (db *DbImpl) AddParticipant(conversationId int, userId int) error {
 	return nil
 }
 
-func (db *DbImpl) RemoveParticipant(conversationId int, userId int) error {
+func (db *appdbimpl) RemoveParticipant(conversationId int, userId int) error {
 	if _, err := db.c.Exec(`
 		DELETE FROM participants 
 		WHERE user_id = ? AND conversation_id = ?
@@ -263,7 +263,7 @@ func (db *DbImpl) RemoveParticipant(conversationId int, userId int) error {
 	return nil
 }
 
-func (db *DbImpl) GetOtherContact(userId, conversationId int) (int, error) {
+func (db *appdbimpl) GetOtherContact(userId, conversationId int) (int, error) {
 	var contactId int
 	if err := db.c.QueryRow(`
 		SELECT p.user_id

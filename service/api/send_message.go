@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 )
 
 // sendMessage handles requests to send a message in a conversation.
-func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
+func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	senderId := ctx.UserId
 	dec := NewStrictDecoder(r)
 	var sendMessageRequest struct {

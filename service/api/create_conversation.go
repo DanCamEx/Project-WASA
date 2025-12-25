@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 )
 
 // createConversation handles requests to create a new direct conversation between two users.
-func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
+func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	creatorId := ctx.UserId
 	dec := NewStrictDecoder(r)
 	var conversationRequest struct {

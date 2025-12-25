@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 )
 
 // getConversation handles requests to retrieve messages from a specific conversation.
-func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx RequestContext) {
+func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	userId := ctx.UserId
 	conversationId, err := strconv.Atoi(ps.ByName("id"))
 	if err != nil {

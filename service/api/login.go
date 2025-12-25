@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 )
@@ -15,13 +16,13 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		Name string `json:"name"`
 	}
 	if err := dec.Decode(&doLoginRequest); err != nil {
-		SendErrorResponse(w, RequestContext{}, http.StatusBadRequest, "failed to decode login request.")
+		SendErrorResponse(w, reqcontext.RequestContext{}, http.StatusBadRequest, "failed to decode login request.")
 		return
 	}
 
 	userId, err := rt.db.GetIdByUserName(doLoginRequest.Name)
 	if err != nil {
-		SendErrorResponse(w, RequestContext{}, http.StatusInternalServerError, "failed to get or create user id by username.")
+		SendErrorResponse(w, reqcontext.RequestContext{}, http.StatusInternalServerError, "failed to get or create user id by username.")
 		return
 	}
 

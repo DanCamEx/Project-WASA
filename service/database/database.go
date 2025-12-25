@@ -80,7 +80,7 @@ type AppDatabase interface {
 	GetAllCommentsByMessageId(messageId int) (*[]Comment, error)
 }
 
-type DbImpl struct {
+type appdbimpl struct {
 	c *sql.DB
 }
 

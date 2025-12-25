@@ -4,7 +4,7 @@ import "database/sql"
 
 // CreateComment creates a new comment (reaction) on a message by a user with the specified emoji.
 // It returns the emoji of the created comment.
-func (db *DbImpl) CreateComment(messageId int, reacterId int, emojiIn string) (string, error) {
+func (db *appdbimpl) CreateComment(messageId int, reacterId int, emojiIn string) (string, error) {
 	var emojiOut string
 	if err := db.c.QueryRow(`
 		INSERT INTO comments (reacter_id, message_id, emoji) 
@@ -23,7 +23,7 @@ type Comment struct {
 
 // GetComment retrieves the comment (reaction) made by a user on a specific message.
 // It returns the message id, reacter id, and emoji of the comment.
-func (db *DbImpl) GetComment(messageIdIn int, reacterIdIn int) (*Comment, error) {
+func (db *appdbimpl) GetComment(messageIdIn int, reacterIdIn int) (*Comment, error) {
 	var comment Comment
 	if err := db.c.QueryRow(`
 		SELECT reacter_id, message_id, emoji 
@@ -36,7 +36,7 @@ func (db *DbImpl) GetComment(messageIdIn int, reacterIdIn int) (*Comment, error)
 }
 
 // DeleteComment removes the comment (reaction) made by a user on a specific message.
-func (db *DbImpl) DeleteComment(messageId int, reacterId int) error {
+func (db *appdbimpl) DeleteComment(messageId int, reacterId int) error {
 	res, err := db.c.Exec(`
 		DELETE FROM comments 
 		WHERE reacter_id = ? AND message_id = ?
@@ -52,7 +52,7 @@ func (db *DbImpl) DeleteComment(messageId int, reacterId int) error {
 }
 
 // CheckComment checks if a comment (reaction) exists for a specific message by a user.
-func (db *DbImpl) CheckComment(messageId int, reacterId int) (bool, error) {
+func (db *appdbimpl) CheckComment(messageId int, reacterId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
 		SELECT EXISTS(
@@ -66,7 +66,7 @@ func (db *DbImpl) CheckComment(messageId int, reacterId int) (bool, error) {
 }
 
 // GetAllCommentsByMessageId retrieves all comments for a specific message.
-func (db *DbImpl) GetAllCommentsByMessageId(messageId int) (*[]Comment, error) {
+func (db *appdbimpl) GetAllCommentsByMessageId(messageId int) (*[]Comment, error) {
 	rows, err := db.c.Query(`
 		SELECT reacter_id, message_id, emoji 
 		FROM comments
