@@ -51,6 +51,11 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	if err = rt.db.UpdateLatestMessageId(forwardMessage.ConversationId); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message id in the database")
+		return
+	}
+
 	message, err := rt.db.GetMessage(newMessageId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get forwarded message details")

@@ -22,6 +22,7 @@ const onSearch = () => {
   width: 95%;
   height: 2rem;
   margin-left: 0.8rem;
+  margin-top: 1rem;
   border: 0.1rem solid #000000;
   font-family: sans-serif;
   font-size: 1rem;

@@ -32,7 +32,7 @@ const sendMessage = () => {
   font-size: 1.2rem;
   color: #000000;
 }
-input::placeholder {
+.send-bar::placeholder {
   font-family: sans-serif;
   font-size: 1.2rem;
   color: #000000;
