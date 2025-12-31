@@ -11,7 +11,7 @@ import (
 // uncommentMessage handles requests to remove a comment from a message.
 func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	commenterId := ctx.UserId
-	messageId, err := strconv.Atoi(ps.ByName("id"))
+	messageId, err := strconv.Atoi(ps.ByName("messageId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid message id in path, or failed parse")
 		return

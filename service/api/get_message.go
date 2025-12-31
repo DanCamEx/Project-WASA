@@ -11,7 +11,7 @@ import (
 
 // getMessage handles requests to get a message's information.
 func (rt *_router) getMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	messageId, err := strconv.Atoi(ps.ByName("id"))
+	messageId, err := strconv.Atoi(ps.ByName("messageId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid message id in path, or failed parse")
 		return

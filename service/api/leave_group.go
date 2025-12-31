@@ -10,16 +10,9 @@ import (
 
 // leaveGroup handles requests to remove a user from a group conversation.
 func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	dec := NewStrictDecoder(r)
-	var leaveRequest struct {
-		UserId int `json:"user_id"`
-	}
-	if err := dec.Decode(&leaveRequest); err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode leaveGroup request")
-		return
-	}
+	userId := ctx.UserId
 
-	groupId, err := strconv.Atoi(ps.ByName("id"))
+	groupId, err := strconv.Atoi(ps.ByName("conversationId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid group id")
 		return
@@ -34,17 +27,17 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "conversation is not a group")
 		return
 	}
-	exists, err = rt.db.CheckParticipant(groupId, leaveRequest.UserId)
+	isParticipant, err := rt.db.CheckParticipant(groupId, userId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check if user is a participant")
 		return
 	}
-	if !exists {
+	if !isParticipant {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "user is not a participant in the group conversation")
 		return
 	}
 
-	if err := rt.db.RemoveParticipant(groupId, leaveRequest.UserId); err != nil {
+	if err := rt.db.RemoveParticipant(groupId, userId); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to remove user from group conversation")
 		return
 	}

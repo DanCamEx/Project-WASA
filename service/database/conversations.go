@@ -33,15 +33,15 @@ func (db *appdbimpl) CreateDirConversation(creatorId, participantId int) (int, e
 	return conversationId, nil
 }
 
-// CreateGrpConversation creates a new group conversation with the specified name and participants and returns its id.
+// CreateGrpConversation creates a new group conversation adding the creator and all the members in the participants table, and returns its id.
 // Both the creator and participants are added as participants of the conversation in a separate table.
-func (db *appdbimpl) CreateGrpConversation(creatorId int, participantIds []int) (int, error) {
+func (db *appdbimpl) CreateGrpConversation(creatorId int, participantIds []int, name string) (int, error) {
 	var conversationId int
 	if err := db.c.QueryRow(`
-		INSERT INTO conversations (category) 
-		VALUES ('group') 
+		INSERT INTO conversations (category, name) 
+		VALUES ('group', ?)
 		RETURNING id
-	`).Scan(&conversationId); err != nil {
+	`, name).Scan(&conversationId); err != nil {
 		return 0, err
 	}
 	if err := db.c.QueryRow(`
@@ -64,13 +64,14 @@ func (db *appdbimpl) CreateGrpConversation(creatorId int, participantIds []int) 
 	return conversationId, nil
 }
 
-// SetGroupName updates the name of the group conversation with the given id.
-// It returns an error if the conversation does not exist.
+// SetGroupName updates the name of the group conversation by id.
+// If it doensn't exist or is not a group, returns an error.
 func (db *appdbimpl) SetGroupName(conversationId int, name string) error {
 	res, err := db.c.Exec(`
 		UPDATE conversations 
 		SET name = ? 
 		WHERE id = ?
+		AND category = 'group'
 	`, name, conversationId)
 	if err != nil {
 		return err
@@ -82,7 +83,7 @@ func (db *appdbimpl) SetGroupName(conversationId int, name string) error {
 	return nil
 }
 
-// CheckConversation checks if a conversation with the given id exists.
+// CheckConversation checks if a conversation exists by id.
 func (db *appdbimpl) CheckConversation(conversationId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
@@ -96,27 +97,28 @@ func (db *appdbimpl) CheckConversation(conversationId int) (bool, error) {
 	return exists, nil
 }
 
-// GetConversation retrieves the conversation information for the given conversation id.
-// It returns the name, image, category, and latest message id of the conversation.
+// GetConversation returns the conversation info by id.
+// It returns its name, photo, category, and latest message.
 func (db *appdbimpl) GetConversation(conversationId int) (*Conversation, error) {
 	var conversation Conversation
 	if err := db.c.QueryRow(`
-		SELECT id, name, image, category, latest_message_id
+		SELECT id, name, photo, category, latest_message_content, latest_message_timestamp
 		FROM conversations
 		WHERE id = ?
 	`, conversationId).Scan(
 		&conversation.Id,
 		&conversation.Name,
-		&conversation.Image,
+		&conversation.Photo,
 		&conversation.Category,
-		&conversation.LatestMessageId,
+		&conversation.LatestMessage.Content,
+		&conversation.LatestMessage.Timestamp,
 	); err != nil {
 		return nil, err
 	}
 	return &conversation, nil
 }
 
-// CheckIfGroup checks if the conversation with the given id is a group conversation.
+// CheckIfGroup checks if the conversation is a group conversation.
 func (db *appdbimpl) CheckIfGroup(conversationId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
@@ -129,11 +131,11 @@ func (db *appdbimpl) CheckIfGroup(conversationId int) (bool, error) {
 	return exists, nil
 }
 
-// GetAllUserConversations retrieves all conversations for the given user id.
+// GetAllUserConversations returns all conversations of the user.
 func (db *appdbimpl) GetAllUserConversations(userId int) (*[]Conversation, error) {
 	var conversations []Conversation
 	rows, err := db.c.Query(`
-		SELECT c.id, c.name, c.image, c.category, c.latest_message_id
+		SELECT c.id, c.name, c.photo, c.category, c.latest_message_content, c.latest_message_timestamp
 		FROM conversations c
 		JOIN participants p ON c.id = p.conversation_id
 		WHERE p.user_id = ?
@@ -142,18 +144,21 @@ func (db *appdbimpl) GetAllUserConversations(userId int) (*[]Conversation, error
 		return nil, err
 	}
 	defer rows.Close()
-	var id, latestMessageId int
-	var name, image, category string
+	var id int
+	var name, photo, category, latestMessageContent, latestMessageTimestamp string
 	for rows.Next() {
-		if err := rows.Scan(&id, &name, &image, &category, &latestMessageId); err != nil {
+		if err := rows.Scan(&id, &name, &photo, &category, &latestMessageContent, &latestMessageTimestamp); err != nil {
 			return nil, err
 		}
 		conversations = append(conversations, Conversation{
-			Id:              id,
-			Name:            name,
-			Image:           image,
-			Category:        category,
-			LatestMessageId: latestMessageId,
+			Id:       id,
+			Name:     name,
+			Photo:    photo,
+			Category: category,
+			LatestMessage: LatestMessage{
+				Content:   latestMessageContent,
+				Timestamp: latestMessageTimestamp,
+			},
 		})
 		if err := rows.Err(); err != nil {
 			return nil, err
@@ -162,21 +167,33 @@ func (db *appdbimpl) GetAllUserConversations(userId int) (*[]Conversation, error
 	return &conversations, nil
 }
 
-// UpdateLatestMessageId updates the latest message id of the conversation with the given id.
-func (db *appdbimpl) UpdateLatestMessageId(conversationId int) error {
+// UpdateLatestMessage updates the latest message sent in the conversation using its timestamp.
+func (db *appdbimpl) UpdateLatestMessage(conversationId int) error {
 	if _, err := db.c.Exec(`
 		UPDATE conversations
-		SET latest_message_id = (
-			SELECT MAX(id) FROM messages WHERE conversation_id = ?
-		)
-		WHERE id = ?
-	`, conversationId, conversationId); err != nil {
+		SET
+			latest_message_content = COALESCE((
+				SELECT content
+				FROM messages
+				WHERE conversation_id = ?
+				ORDER BY timestamp DESC
+				LIMIT 1
+			), ''),
+			latest_message_timestamp = COALESCE((
+				SELECT timestamp
+				FROM messages
+				WHERE conversation_id = ?
+				ORDER BY timestamp DESC
+				LIMIT 1
+			), '')
+			WHERE id = ?
+	`, conversationId, conversationId, conversationId); err != nil {
 		return err
 	}
 	return nil
 }
 
-// CheckParticipant checks if the user with the given id is a participant of the conversation with the given id.
+// CheckParticipant checks if the user is a participant of the conversation.
 func (db *appdbimpl) CheckParticipant(conversationId int, userId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
@@ -190,8 +207,8 @@ func (db *appdbimpl) CheckParticipant(conversationId int, userId int) (bool, err
 	return exists, nil
 }
 
-// CheckParticipantByMessageId checks if the user with the given id is a participant of the conversation
-// that contains the message with the given id.
+// CheckParticipantByMessageId checks if the user is a participant of the conversation using a message id.
+// Used to know if the user can actually access the message.
 func (db *appdbimpl) CheckParticipantByMessageId(messageId int, userId int) (bool, error) {
 	var exists bool
 	if err := db.c.QueryRow(`
@@ -207,7 +224,31 @@ func (db *appdbimpl) CheckParticipantByMessageId(messageId int, userId int) (boo
 	return exists, nil
 }
 
-// GetConversationMessages retrieves all the messages for the given conversation.
+func (db *appdbimpl) GetParticipants(conversationId int) ([]int, error) {
+	rows, err := db.c.Query(`
+		SELECT user_id
+		FROM participants
+		WHERE conversation_id = ?
+	`, conversationId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var participantIds []int
+	var userId int
+	for rows.Next() {
+		if err := rows.Scan(&userId); err != nil {
+			return nil, err
+		}
+		participantIds = append(participantIds, userId)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return participantIds, nil
+}
+
+// GetConversationMessages returns all messages of the conversation.
 func (db *appdbimpl) GetConversationMessages(conversationIdIn int) (*[]Message, error) {
 	rows, err := db.c.Query(`
 		SELECT id, sender_id, content, timestamp, status, is_forwarded
@@ -243,6 +284,7 @@ func (db *appdbimpl) GetConversationMessages(conversationIdIn int) (*[]Message, 
 	return &messages, nil
 }
 
+// AddParticipant adds the user id to the conversation participants.
 func (db *appdbimpl) AddParticipant(conversationId int, userId int) error {
 	if _, err := db.c.Exec(`
 		INSERT INTO participants (user_id, conversation_id) 
@@ -253,6 +295,7 @@ func (db *appdbimpl) AddParticipant(conversationId int, userId int) error {
 	return nil
 }
 
+// RemoveParticipant removes the user id linked to the conversation from the participants.
 func (db *appdbimpl) RemoveParticipant(conversationId int, userId int) error {
 	if _, err := db.c.Exec(`
 		DELETE FROM participants 
@@ -263,6 +306,8 @@ func (db *appdbimpl) RemoveParticipant(conversationId int, userId int) error {
 	return nil
 }
 
+// GetOtherContact returns the other user id of the conversation.
+// It should be used only for direct conversations.
 func (db *appdbimpl) GetOtherContact(userId, conversationId int) (int, error) {
 	var contactId int
 	if err := db.c.QueryRow(`
@@ -276,10 +321,27 @@ func (db *appdbimpl) GetOtherContact(userId, conversationId int) (int, error) {
 	return contactId, nil
 }
 
+// SetGroupPhoto updates the group photo or set it if was "".
+func (db *appdbimpl) SetGroupPhoto(conversationId int, filename string) error {
+	_, err := db.c.Exec(`
+		UPDATE conversations
+		SET photo = ?
+		WHERE id = ?
+	`, filename, conversationId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type LatestMessage struct {
+	Content   string `json:"content"`
+	Timestamp string `json:"timestamp"`
+}
 type Conversation struct {
-	Id              int    `json:"id"`
-	Name            string `json:"name"`
-	Image           string `json:"image"`
-	Category        string `json:"category"`
-	LatestMessageId int    `json:"latestMessageId"`
+	Id            int           `json:"id"`
+	Name          string        `json:"name"`
+	Photo         string        `json:"photo"`
+	Category      string        `json:"category"`
+	LatestMessage LatestMessage `json:"latestMessage"`
 }

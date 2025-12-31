@@ -40,37 +40,45 @@ import (
 type AppDatabase interface {
 
 	// User-related methods
+	CheckUserId(userId int) (bool, error)
 	GetIdByUserName(name string) (int, error)
 	SetUserName(userId int, name string) error
+	GetUserByName(userName string) (User, error)
 	GetUser(userId int) (User, error)
 	CheckUserName(name string) (bool, error)
 	GetAllUsers() (*[]User, error)
-	CheckUserId(userId int) (bool, error)
+	SetUserPhoto(userId int, filename string) error
 
 	// Conversation-related methods
 	CreateDirConversation(creatorId int, participantId int) (int, error)
-	CreateGrpConversation(creatorId int, participantIds []int) (int, error)
-	SetGroupName(id int, name string) error
-	CheckConversation(id int) (bool, error)
-	GetConversation(id int) (*Conversation, error)
-	CheckIfGroup(id int) (bool, error)
+	CreateGrpConversation(creatorId int, participantIds []int, name string) (int, error)
+	SetGroupName(conversationId int, name string) error
+	CheckConversation(conversationId int) (bool, error)
+	GetConversation(conversationId int) (*Conversation, error)
+	CheckIfGroup(conversationId int) (bool, error)
 	GetAllUserConversations(userId int) (*[]Conversation, error)
-	CheckParticipant(id int, userId int) (bool, error)
-	UpdateLatestMessageId(id int) error
+	CheckParticipant(conversationId int, userId int) (bool, error)
+	UpdateLatestMessage(conversationId int) error
 	CheckParticipantByMessageId(messageId int, userId int) (bool, error)
-	GetConversationMessages(id int) (*[]Message, error)
+	GetConversationMessages(conversationId int) (*[]Message, error)
 	AddParticipant(conversationId int, userId int) error
 	RemoveParticipant(conversationId int, userId int) error
 	GetOtherContact(userId int, conversationId int) (int, error)
+	SetGroupPhoto(conversationId int, filename string) error
+	GetParticipants(conversationId int) ([]int, error)
 
 	// Message-related methods
 	CreateMessage(senderId int, conversationId int, content string) (int, error)
-	GetMessage(id int) (*Message, error)
-	DeleteMessage(id int) error
-	CheckMessage(id int, senderId int) (bool, error)
-	CheckMessageOnly(id int) (bool, error)
-	ForwardMessage(id int, senderId int, conversationId int) (int, error)
-	UpdateStatus(id int) error
+	GetMessage(messageId int) (*Message, error)
+	DeleteMessage(messageId int) error
+	CheckMessage(messageId int, senderId int) (bool, error)
+	CheckMessageOnly(messageId int) (bool, error)
+	ForwardMessage(messageId int, senderId int, conversationId int) (int, error)
+	UpdateStatus(messageId int) error
+	IsMessageReadByAll(messageId int, conversationId int) (bool, error)
+	UpdateTracking(userId int, messageId int) error
+	AddStatus(messageId int, userId int) error
+	RemoveStatus(messageId int, userId int) error
 
 	// Comment-related methods
 	CreateComment(messageId int, reacterId int, emoji string) (string, error)
@@ -78,6 +86,7 @@ type AppDatabase interface {
 	DeleteComment(messageId int, reacterId int) error
 	CheckComment(messageId int, reacterId int) (bool, error)
 	GetAllCommentsByMessageId(messageId int) (*[]Comment, error)
+	DeleteAllCommentsByMessageId(messageId int) error
 }
 
 type appdbimpl struct {
@@ -96,15 +105,15 @@ func New(db *sql.DB) (AppDatabase, error) {
 		CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL DEFAULT '' UNIQUE,
-			image TEXT NOT NULL DEFAULT ''
+			photo TEXT NOT NULL DEFAULT ''
 		);
 		CREATE TABLE IF NOT EXISTS conversations (
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL DEFAULT '',
-			image TEXT NOT NULL DEFAULT '',
+			photo TEXT NOT NULL DEFAULT '',
 			category TEXT NOT NULL DEFAULT '',
-			latest_message_id INTEGER NOT NULL DEFAULT 0,
-		    FOREIGN KEY(latest_message_id) REFERENCES messages(id)
+			latest_message_content TEXT NOT NULL DEFAULT '',
+			latest_message_timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE IF NOT EXISTS messages (
 			id INTEGER PRIMARY KEY,
@@ -131,6 +140,14 @@ func New(db *sql.DB) (AppDatabase, error) {
 			PRIMARY KEY (user_id, conversation_id),
 			FOREIGN KEY(user_id) REFERENCES users(id),
 			FOREIGN KEY(conversation_id) REFERENCES conversations(id)
+		);
+		CREATE TABLE IF NOT EXISTS statuses (
+			message_id INTEGER NOT NULL DEFAULT 0,
+			user_id INTEGER NOT NULL DEFAULT 0,
+			status TEXT NOT NULL DEFAULT 'sent',
+			PRIMARY KEY (message_id, user_id),
+			FOREIGN KEY(message_id) REFERENCES messages(id),
+			FOREIGN KEY(user_id) REFERENCES users(id)
 		)`
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

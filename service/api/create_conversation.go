@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
+	"github.com/DanCamEx/Project-WASA/service/database"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -13,14 +14,15 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 	creatorId := ctx.UserId
 	dec := NewStrictDecoder(r)
 	var conversationRequest struct {
-		ParticipantIds []int  `json:"participantIds"`
-		Category       string `json:"category"`
+		Name            string `json:"name"`
+		ParticipantsIds []int  `json:"participantsIds"`
+		Category        string `json:"category"`
 	}
 	if err := dec.Decode(&conversationRequest); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode createConversation request")
 		return
 	}
-	for _, participantId := range conversationRequest.ParticipantIds {
+	for _, participantId := range conversationRequest.ParticipantsIds {
 		if participantId == creatorId {
 			SendErrorResponse(w, ctx, http.StatusBadRequest, "creator cannot be a participant in the conversation")
 			return
@@ -36,26 +38,26 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 		}
 	}
 	var conversationResponse struct {
-		Id              int    `json:"id"`
-		Name            string `json:"name"`
-		Image           string `json:"image"`
-		Category        string `json:"category"`
-		LatestMessageId int    `json:"latestMessageId"`
+		Id            int                    `json:"id"`
+		Name          string                 `json:"name"`
+		Photo         string                 `json:"photo"`
+		Category      string                 `json:"category"`
+		LatestMessage database.LatestMessage `json:"latestMessage"`
 	}
 	var err error
 	switch conversationRequest.Category {
 	case "group":
-		conversationResponse.Id, err = rt.db.CreateGrpConversation(creatorId, conversationRequest.ParticipantIds)
+		conversationResponse.Id, err = rt.db.CreateGrpConversation(creatorId, conversationRequest.ParticipantsIds, conversationRequest.Name)
 		if err != nil {
 			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create group conversation")
 			return
 		}
 	case "direct":
-		if len(conversationRequest.ParticipantIds) != 1 {
+		if len(conversationRequest.ParticipantsIds) != 1 {
 			SendErrorResponse(w, ctx, http.StatusBadRequest, "direct conversation must have exactly one participant")
 			return
 		}
-		conversationResponse.Id, err = rt.db.CreateDirConversation(creatorId, conversationRequest.ParticipantIds[0])
+		conversationResponse.Id, err = rt.db.CreateDirConversation(creatorId, conversationRequest.ParticipantsIds[0])
 		if err != nil {
 			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create direct conversation")
 			return
@@ -75,7 +77,7 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 			return
 		}
 		conversationResponse.Name = otherUser.Name
-		conversationResponse.Image = otherUser.Image
+		conversationResponse.Photo = otherUser.Photo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

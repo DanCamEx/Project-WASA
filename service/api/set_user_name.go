@@ -20,6 +20,14 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode updateUserName request")
 		return
 	}
+	if userName.Name == "" {
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "user name cannot be empty")
+		return
+	}
+	if len(userName.Name) > 16 {
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "user name cannot be longer than 16 characters")
+		return
+	}
 
 	exists, err := rt.db.CheckUserName(userName.Name)
 	if err != nil {

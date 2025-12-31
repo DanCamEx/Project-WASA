@@ -21,7 +21,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	messageId, err := strconv.Atoi(ps.ByName("id"))
+	messageId, err := strconv.Atoi(ps.ByName("messageId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid message id in path, or failed parse")
 		return

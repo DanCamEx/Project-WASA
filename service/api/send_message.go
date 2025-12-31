@@ -15,6 +15,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	dec := NewStrictDecoder(r)
 	var sendMessageRequest struct {
 		Content string `json:"content"`
+		IsImage bool   `json:"isImage"`
 	}
 	err := dec.Decode(&sendMessageRequest)
 	if err != nil {
@@ -22,7 +23,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	conversationId, err := strconv.Atoi(ps.ByName("id"))
+	conversationId, err := strconv.Atoi(ps.ByName("conversationId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "failed to get conversation id from path or invalid format")
 		return
@@ -45,14 +46,26 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		SendErrorResponse(w, ctx, http.StatusNotFound, "sender is not a participant of the conversation")
 		return
 	}
-
 	messageId, err := rt.db.CreateMessage(senderId, conversationId, sendMessageRequest.Content)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create the message in the database")
 		return
 	}
-	if err = rt.db.UpdateLatestMessageId(conversationId); err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message id in the database")
+	participants, err := rt.db.GetParticipants(conversationId)
+	if err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get participants of the conversation")
+		return
+	}
+	for _, participantId := range participants {
+		if participantId != senderId {
+			if err = rt.db.AddStatus(messageId, participantId); err != nil {
+				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to add message status for a participant")
+				return
+			}
+		}
+	}
+	if err = rt.db.UpdateLatestMessage(conversationId); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message in the database")
 		return
 	}
 

@@ -20,7 +20,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	messageId, err := strconv.Atoi(ps.ByName("id"))
+	messageId, err := strconv.Atoi(ps.ByName("messageId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "could not convert message id in path to int or invalid format")
 		return
@@ -44,15 +44,26 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		SendErrorResponse(w, ctx, http.StatusNotFound, "conversation does not exist")
 		return
 	}
-
 	newMessageId, err := rt.db.ForwardMessage(messageId, senderId, forwardMessage.ConversationId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to forward message")
 		return
 	}
-
-	if err = rt.db.UpdateLatestMessageId(forwardMessage.ConversationId); err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message id in the database")
+	participants, err := rt.db.GetParticipants(forwardMessage.ConversationId)
+	if err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get participants of the conversation")
+		return
+	}
+	for _, userId := range participants {
+		if userId != senderId {
+			if err = rt.db.AddStatus(messageId, userId); err != nil {
+				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to add message status for a participant")
+				return
+			}
+		}
+	}
+	if err = rt.db.UpdateLatestMessage(forwardMessage.ConversationId); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message in the database")
 		return
 	}
 

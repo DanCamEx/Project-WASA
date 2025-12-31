@@ -101,21 +101,79 @@ func (db *appdbimpl) ForwardMessage(idIn int, senderId int, conversationId int) 
 	return idOut, nil
 }
 
-// updateStatus updates the status of the message with the given id to 'read'.
+// RemoveStatus removes the status entry for the given message and user.
+func (db *appdbimpl) RemoveStatus(messageId int, userId int) error {
+	_, err := db.c.Exec(`
+		DELETE FROM statuses 
+		WHERE message_id = ? AND user_id = ?
+	`, messageId, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// AddStatus adds a new status entry for the given message and user with status 'sent'.
+func (db *appdbimpl) AddStatus(messageId int, userId int) error {
+	if _, err := db.c.Exec(`
+		INSERT INTO statuses (message_id, user_id, status) 
+		VALUES (?, ?, 'sent') 
+	`, messageId, userId); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateStatus updates the status of the message with the given id to 'read'.
 func (db *appdbimpl) UpdateStatus(id int) error {
-	res, err := db.c.Exec(`
-			UPDATE messages 
-			SET status = 'read' 
-			WHERE id = ?
+	_, err := db.c.Exec(`
+		UPDATE messages 
+		SET status = 'read' 
+		WHERE id = ?
 		`, id)
 	if err != nil {
 		return err
 	}
-	rows, err := res.RowsAffected()
-	if err == nil && rows == 0 {
-		return sql.ErrNoRows
+	return nil
+}
+
+// UpdateTracking updates the message status to 'read' for the given user and message id.
+func (db *appdbimpl) UpdateTracking(userId int, messageId int) error {
+	if _, err := db.c.Exec(`
+		UPDATE statuses
+		SET status = ?
+		WHERE user_id = ?
+		AND message_id = ?
+	`, "read", userId, messageId); err != nil {
+		return err
 	}
 	return nil
+}
+
+// IsMessageReadByAll checks if all participants in the conversation have read the specified message.
+func (db *appdbimpl) IsMessageReadByAll(messageId int, conversationId int) (bool, error) {
+	var totalParticipants int
+	err := db.c.QueryRow(`
+        SELECT COUNT(*) 
+		FROM participants 
+		WHERE conversation_id = ?
+    `, conversationId).Scan(&totalParticipants)
+	if err != nil {
+		return false, err
+	}
+
+	var readCount int
+	err = db.c.QueryRow(`
+        SELECT COUNT(*) 
+		FROM statuses 
+		WHERE message_id = ? 
+		AND status = 'read'
+    `, messageId).Scan(&readCount)
+	if err != nil {
+		return false, err
+	}
+
+	return readCount == totalParticipants-1, nil
 }
 
 type Message struct {

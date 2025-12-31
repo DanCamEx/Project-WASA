@@ -29,7 +29,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 				return
 			}
 			(*conversations)[i].Name = otherUser.Name
-			(*conversations)[i].Image = otherUser.Image
+			(*conversations)[i].Photo = otherUser.Photo
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")

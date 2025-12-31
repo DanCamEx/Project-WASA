@@ -91,14 +91,14 @@ paths:
                   conversations:
                     - id: 324
                       name: Soccer Group
-                      image: https://example.com/image.png
+                      : https://example.com/.png
                       type: group
                       latestMessage:
                         createdAt: 2025-11-03T17:30:00+01:00
                         body: https://example.com/icon.png
                     - id: 345
                       name: Luca
-                      image: https://example.com/image.png
+                      : https://example.com/.png
                       type: direct
                       latestMessage:
                         createdAt: 2025-12-03T17:30:00+01:00
@@ -108,9 +108,9 @@ paths:
   /users/{userId}/photo:
     put:
       tags: [user]
-      summary: Updates user profile image
+      summary: Updates user profile 
       description: |-
-        Replaces profile image with the new one. Returns the
+        Replaces profile  with the new one. Returns the
         user resource with the url inside updated.
       operationId: setMyPhoto
       parameters:
@@ -119,7 +119,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/ImageUpload"
+              $ref: "#/components/schemas/Upload"
       responses:
         "200":
           description: Photo uploaded successfully
@@ -190,9 +190,9 @@ paths:
   /conversations/{conversationId}/photo:
     put:
       tags: [conversation]
-      summary: Updates group profile image
+      summary: Updates group profile 
       description: |-
-        Replaces group image with the new one. Returns the
+        Replaces group  with the new one. Returns the
         conversation resource with the url inside updated. It works
         ONLY if the type attribute is group.
       operationId: setGroupPhoto
@@ -202,7 +202,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/ImageUpload"
+              $ref: "#/components/schemas/Upload"
       responses:
         "200":
           description: Photo uploaded successfully
@@ -253,7 +253,7 @@ paths:
                           id: 452
                         conversationId:
                           id: 73
-                        content: https://example.com/image.png
+                        content: https://example.com/.png
                         timestamp: 2023-01-23T12:37:00+01:00
                         status: received
                         isForwarded: true
@@ -273,14 +273,14 @@ paths:
               properties:
                 messageToSend:
                   type: string
-                  description: It can be simple text, or the location of an image uploaded.
+                  description: It can be simple text, or the location of an  uploaded.
                   anyOf:
                     - title: text
                       type: string
                       pattern: .*
                       minLength: 1
                       maxLength: 100
-                    - title: image
+                    - title: 
                       type: string
                       format: url
                       pattern: ^[a-zA-Z]+://.+$
@@ -435,15 +435,15 @@ components:
         - $ref: "#/components/schemas/UserName"
         - type: object
           properties:
-            image:
+            :
               type: string
               format: url
-              description: The location of the profile image uploaded by the user.
+              description: The location of the profile  uploaded by the user.
       example:
         id: 32
         name: Mario
-        image: https://example.com/image.png
-      required: [id, name, image]
+        : https://example.com/.png
+      required: [id, name, ]
     ConversationId:
       type: object
       description: It's unique and it's assigned to every conversation when it is started/created.
@@ -467,12 +467,12 @@ components:
               description: |-
                 It can be the username of the person you are talking to,
                 or the group name chosen during its creation.
-            image:
+            :
               type: string
               format: url
               description: |-
-                It will be your receiver image if it's a direct conversation,
-                or the chosen group image if it's a group conversation.
+                It will be your receiver  if it's a direct conversation,
+                or the chosen group  if it's a group conversation.
             type:
               type: string
               enum: [group, direct]
@@ -484,12 +484,12 @@ components:
       example:
         id: 324
         name: Soccer Group
-        image: https://example.com/image.png
+        : https://example.com/.png
         type: group
         latestMessage:
           createdAt: 2025-11-03T17:30:00+01:00
           body: 435
-      required: [id, name, image, type]
+      required: [id, name, , type]
     MessageId:
       type: object
       description: It's unique and created when a message is sent or forwarded.
@@ -520,13 +520,13 @@ components:
                     pattern: .*
                     minLength: 1
                     maxLength: 100
-                  - title: image
+                  - title: 
                     type: string
                     format: url
                     pattern: ^[a-zA-Z]+://.+$
                     minLength: 8
                     maxLength: 100
-                description: It can be simple text, or the location of an image uploaded.
+                description: It can be simple text, or the location of an  uploaded.
               timestamp:
                 type: string
                 format: date-time
@@ -582,19 +582,19 @@ components:
         id: 459
         isPartOf: 32
       required: [id, isPartOf]
-    ImageUpload:
+    Upload:
       type: object
-      description: The way to upload an image, used for profile and group images.
+      description: The way to upload an , used for profile and group s.
       properties:
-        uploadedImage:
+        uploaded:
           type: string
           format: binary
-          description: The image binary file to upload, could be the profile image, the group image etc...
+          description: The  binary file to upload, could be the profile , the group  etc...
           minLength: 1
           maxLength: 13981014 # 10MB circa
       example:
-        uploadedImage: (binary image data)
-      required: [uploadedImage]
+        uploaded: (binary  data)
+      required: [uploaded]
   parameters:
     userId:
       in: path

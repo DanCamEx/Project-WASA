@@ -89,3 +89,11 @@ func (db *appdbimpl) GetAllCommentsByMessageId(messageId int) (*[]Comment, error
 	}
 	return &comments, nil
 }
+
+func (db *appdbimpl) DeleteAllCommentsByMessageId(messageId int) error {
+	_, err := db.c.Exec(`
+		DELETE FROM comments 
+		WHERE message_id = ?
+	`, messageId)
+	return err
+}

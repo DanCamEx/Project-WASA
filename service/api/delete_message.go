@@ -11,12 +11,12 @@ import (
 // deleteMessage handles requests to delete a message in a conversation.
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	senderId := ctx.UserId
-	messageId, err := strconv.Atoi(ps.ByName("mid"))
+	messageId, err := strconv.Atoi(ps.ByName("messageId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid message id in path, or failed parse")
 		return
 	}
-	conversationId, err := strconv.Atoi(ps.ByName("cid"))
+	conversationId, err := strconv.Atoi(ps.ByName("conversationId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid conversation id in path, or failed parse")
 		return
@@ -36,8 +36,25 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to delete message")
 		return
 	}
-	if err = rt.db.UpdateLatestMessageId(conversationId); err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message id in the database")
+	if err = rt.db.DeleteAllCommentsByMessageId(messageId); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to delete comments related to the message")
+		return
+	}
+	participants, err := rt.db.GetParticipants(conversationId)
+	if err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get participants of the conversation")
+		return
+	}
+	for _, userId := range participants {
+		if userId != senderId {
+			if err = rt.db.RemoveStatus(messageId, userId); err != nil {
+				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to add message status for a participant")
+				return
+			}
+		}
+	}
+	if err = rt.db.UpdateLatestMessage(conversationId); err != nil {
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message in the database")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

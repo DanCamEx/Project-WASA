@@ -22,7 +22,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 
 	var conversationId int
-	conversationId, err = strconv.Atoi(ps.ByName("id"))
+	conversationId, err = strconv.Atoi(ps.ByName("conversationId"))
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "failed to get conversation id from path or invalid format")
 		return
