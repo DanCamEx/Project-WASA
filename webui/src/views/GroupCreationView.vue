@@ -166,7 +166,6 @@ const createGroup = async () => {
   border-color: black;
   color: black;
   cursor: pointer;
-  font-family: sans-serif;
   font-size: 1rem;
 }
 .create-group-button:hover,
@@ -183,7 +182,6 @@ const createGroup = async () => {
   outline: none;
 }
 .choose-name-input::placeholder {
-  font-family: sans-serif;
   font-size: 0.8rem;
   color: black;
   opacity: 0.7;

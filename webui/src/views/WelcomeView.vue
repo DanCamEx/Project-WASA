@@ -30,7 +30,6 @@
 <style scoped>
 .welcome-message {
 	margin: 2rem;
-	font-family: sans-serif;
 	font-size: 1.2rem;
 }
 </style>

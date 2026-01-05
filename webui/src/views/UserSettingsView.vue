@@ -1,6 +1,6 @@
 <template>
   <div class="dark-overlay" />
-  <main style="padding: 1rem; font-family: sans-serif">
+  <main style="padding: 1rem">
     <h1>Impostazioni Utente</h1>
     <ul style="list-style-type: none; padding: 0">
       <strong style="margin-left: 3rem">Immagine</strong>
@@ -116,7 +116,6 @@ const updateUserPhoto = async (file) => {
   border-color: black;
   color: black;
   cursor: pointer;
-  font-family: sans-serif;
   font-size: 1rem;
 }
 .change-name-button:hover,
@@ -133,7 +132,6 @@ const updateUserPhoto = async (file) => {
   outline: none;
 }
 .change-name-input::placeholder {
-  font-family: sans-serif;
   font-size: 0.8rem;
   color: black;
   opacity: 0.7;

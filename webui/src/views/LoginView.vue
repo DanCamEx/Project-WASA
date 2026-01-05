@@ -1,5 +1,5 @@
 <template>
-  <main class="login-container">
+  <main>
     <h1 class="login-title">Benvenuto in Project-WASA!</h1>
     <h2 class="login-subtitle">
       Effettua il login o registrati scegliendo un nome utente per
@@ -44,9 +44,6 @@ const doLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
-	font-family: sans-serif;
-}
 .login-title {
 	text-align: center;
 	margin-top: 10rem;

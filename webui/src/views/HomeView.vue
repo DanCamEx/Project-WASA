@@ -18,7 +18,7 @@
               : '/images/default_user_photo.jpg'
           "
           alt="Foto utente"
-          style="border-radius: 50%; object-fit: cover; object-position: center"
+          style="border-radius: 50%; object-fit: cover; object-position: center; border: 2px solid black;"
         >
         <div style="margin-left: 0.3rem; font-weight: bold">
           {{ user.name }}
@@ -92,7 +92,7 @@ import {
   isImageSet,
   getDefaultConversationImage,
   formatTimestamp,
-  startPolling
+  startPolling,
 } from "../services/utilities.js";
 
 const router = useRouter();
@@ -159,21 +159,23 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+main {
+  height: 100%;
+  background-color: gainsboro;
+}
 .search-bar {
   width: 95%;
   height: 2rem;
   margin-left: 0.8rem;
   margin-top: 1rem;
   border: 0.1rem solid black;
-  font-family: sans-serif;
-  font-size: 1rem;
-  font-style: italic;
   background-color: whitesmoke;
   color: black;
   outline: none;
 }
 .search-bar::placeholder {
   color: black;
+  font-size: 1rem;
 }
 .users-container {
   list-style-type: none;
@@ -190,19 +192,15 @@ onMounted(async () => {
   padding: 0.5rem;
   border: 0.2rem solid black;
   background-color: whitesmoke;
-  font-family: sans-serif;
   cursor: pointer;
 }
 .create-direct-button {
-  width: fit-content;
   margin-left: 2rem;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
-  border-radius: 0;
-  border-color: black;
-  border-style: solid;
-  font-size: 1rem;
-  font-family: sans-serif;
+  border: 0.2rem solid black;
+  background-color: rgb(0, 150, 250);
+  font-size: 1.1rem;
   cursor: pointer;
 }
 .conversations-header {
@@ -218,19 +216,20 @@ onMounted(async () => {
   margin-left: 2rem;
   margin-right: 1rem;
   margin-bottom: 0.2rem;
-  border-radius: 0;
-  border-color: black;
-  border-style: solid;
-  font-size: 1rem;
-  font-family: sans-serif;
+  border: 0.2rem solid black;
+  background-color: rgb(0, 150, 250);
+  font-size: 1.1rem;
   cursor: pointer;
+}
+.create-direct-button:hover,
+.create-group-button:hover {
+  background-color: rgb(0, 100, 200);
 }
 .conversations-title {
   width: fit-content;
   margin-top: 0;
   margin-bottom: 0.2rem;
   font-size: 1.5rem;
-  font-family: sans-serif;
 }
 .conversations-container {
   list-style-type: none;
@@ -238,19 +237,18 @@ onMounted(async () => {
   margin: 0;
 }
 .conversation {
-  padding: 0.5rem;
+  display: flex;
+  align-items: center;
   margin-left: 1rem;
   margin-right: 1rem;
   margin-top: 0.5rem;
+  padding: 0.5rem;
   border: 0.2rem solid black;
-  background-color: whitesmoke;
-  font-family: sans-serif;
+  background-color: rgb(0, 150, 250);
   cursor: pointer;
-  display: flex;
-  align-items: center;
 }
 .conversation:hover {
-  background-color: gainsboro;
+  background-color: rgb(0, 100, 200);
 }
 .conversation-info {
   display: flex;
@@ -260,12 +258,13 @@ onMounted(async () => {
 }
 .direct-tag,
 .group-tag {
+  width: fit-content;
+  padding: 0.1rem 0.3rem;
+  border: none;
+  background-color: black;
+  color: white;
   font-size: 0.8rem;
   font-weight: bold;
-  color: white;
-  background-color: black;
-  padding: 0.1rem 0.3rem;
-  width: fit-content;
 }
 .conversation-name {
   font-size: 1.2rem;
@@ -274,8 +273,8 @@ onMounted(async () => {
 .conversation-photo {
   width: 70px;
   height: 70px;
-  border-radius: 50%;
   border: 3px solid black;
+  border-radius: 50%;
   object-fit: cover;
   object-position: center;
 }
@@ -289,9 +288,9 @@ onMounted(async () => {
 .icon {
   width: 1.2em;
   height: 1.2em;
-  vertical-align: middle;
   stroke: black;
-  fill: none;
   stroke-width: 2;
+  fill: none;
+  vertical-align: middle;
 }
 </style>

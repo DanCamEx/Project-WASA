@@ -1,23 +1,20 @@
 <template>
-  <header class="conversation-header">
+  <header class="main-header">
     <img
       :src="
         isImageSet(conversationInfo.photo)
           ? serverUrl + '/images/' + conversationInfo.photo
           : getDefaultConversationImage(conversationInfo.category)
       "
-      class="conversation-photo-header"
+      class="conversation-photo"
       alt="Foto conversazione"
     />
-    <h1 class="conversation-title">{{ conversationInfo.name }}</h1>
-    <div
-      v-if="conversationInfo.category == 'group'"
-      class="conversation-actions"
-    >
+    <h1>{{ conversationInfo.name }}</h1>
+    <div v-if="conversationInfo.category == 'group'" style="margin-left: auto">
       <input
         v-model="newMemberName"
         type="text"
-        placeholder="Aggiungi membro al gruppo..."
+        placeholder="Aggiungi membro..."
         class="add-to-group-input"
       />
       <button class="add-to-group-button" @click="addToGroup">Aggiungi</button>
@@ -33,27 +30,26 @@
       />
     </div>
   </header>
-  <ul class="messages">
+  <ul class="messages-container">
     <li
       v-for="message in messages"
       :key="message.id"
       :class="message.senderId == authId ? 'message-right' : 'message-left'"
       :style="
         message.senderId == authId
-          ? 'align-self: flex-end;'
-          : 'align-self: flex-start;'
+          ? 'align-self: flex-end; margin-right: 0.5rem;'
+          : 'align-self: flex-start; margin-left: 0.5rem;'
+      "
+      @click="
+        showMessageOptions =
+          showMessageOptions == message.id ? null : message.id;
+        showEmotes = false;
       "
     >
       <span v-if="message.senderId == authId" class="message-timestamp">
         {{ formatTimestamp(message.timestamp) }}
       </span>
-      <span
-        class="message-content"
-        @click="
-          showMessageOptions =
-            showMessageOptions == message.id ? null : message.id;
-          showEmotes = false;
-        "
+      <span class="message-container"
         ><img
           v-if="
             message.content.endsWith('.jpg') ||
@@ -167,7 +163,12 @@
         class="send-bar"
         @keyup.enter="sendMessage"
       />
-      <label for="imageInput" class="send-photo-button">Invia Immagine</label>
+      <label for="imageInput"
+        ><img
+          src="/icons/image.svg"
+          class="send-photo-button"
+          alt="Invia Immagine"
+      /></label>
     </div>
     <input
       id="imageInput"
@@ -340,246 +341,173 @@ watch(
 </script>
 
 <style scoped>
-.conversation-header {
+.main-header {
   display: flex;
+  height: 6rem;
   align-items: center;
   border-bottom: solid black;
-  padding-bottom: 0.3rem;
-  background-color: whitesmoke;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  overflow-y: hidden;
+  background-color: rgb(0, 150, 250);
 }
-.conversation-title {
-  margin-left: 1.5rem;
-  margin-top: 1.6rem;
-  font-family: sans-serif;
-}
-.conversation-actions {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-}
-.conversation-photo-header {
+.conversation-photo {
   width: 80px;
   height: 80px;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 0.2rem solid black;
-  margin-top: 0.2rem;
   margin-left: 1rem;
-}
-.conversation-actions {
-  justify-content: flex-end;
-  margin-right: 1rem;
+  border: 0.2rem solid black;
+  border-radius: 50%;
+  object-fit: cover;
 }
 .add-to-group-input {
-  margin-top: 2rem;
   height: 1.5rem;
-  width: 15rem;
-  border: 0.1rem solid black;
-  font-family: sans-serif;
-  font-size: 0.9rem;
-  background-color: whitesmoke;
-  color: black;
+  border: 0.15rem solid black;
   outline: none;
-}
-.add-to-group-input::placeholder {
+  font-size: 0.8rem;
   color: black;
 }
 .add-to-group-button {
-  width: fit-content;
-  margin-left: 0.2rem;
-  margin-top: 2rem;
   height: 2rem;
-  border-color: black;
-  border-style: solid;
+  border: 0.2rem solid black;
+  background-color: gainsboro;
   font-size: 1rem;
-  font-family: sans-serif;
+  font-weight: bold;
   cursor: pointer;
+}
+.add-to-group-button:hover {
+  background-color: grey;
 }
 .leave-group-button {
-  width: fit-content;
+  height: 2rem;
   margin-left: 1rem;
-  margin-top: 2rem;
-  height: 2.2rem;
-  border-color: darkred;
-  border-style: solid;
-  color: darkred;
+  border: solid black;
+  background-color: red;
+  color: black;
   font-size: 1rem;
-  font-family: sans-serif;
+  font-weight: bold;
   cursor: pointer;
 }
-.messages {
-  list-style-type: none;
-  height: calc(100% - 10.5rem);
+.leave-group-button:hover {
+  background-color: darkred;
+}
+.messages-container {
   display: flex;
   flex-direction: column-reverse;
   overflow-y: auto;
-  padding: 0.5rem;
+  height: calc(100% - 9.5rem);
   margin: 0;
+  padding: 0;
+  list-style-type: none;
+  background-color: gainsboro;
 }
 .message-right,
 .message-left {
   position: relative;
   max-width: 60%;
-  margin: 1.2rem 0rem 1rem 0rem;
-  font-family: sans-serif;
+  margin: 1rem 0rem;
   word-break: break-word;
   cursor: pointer;
-  background: none;
-  padding: 0;
-}
-.message-row {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
 }
 .message-timestamp {
   margin-right: 0.5rem;
   font-size: 0.8rem;
-  cursor: default;
 }
 .sender-name {
   margin-left: 0.5rem;
+  white-space: nowrap;
   font-weight: bold;
   font-size: 0.95em;
-  cursor: default;
-  white-space: nowrap;
-  background: none;
 }
-.message-content {
-  background-color: whitesmoke;
-  border-radius: 0.1rem;
-  padding: 0.5rem;
-  display: inline-block;
-  min-width: 2.5rem;
+.message-container {
   position: relative;
+  padding: 0.5rem 0.7rem 0.5rem 0.7rem;
+  background-color: rgb(0, 150, 250);
 }
-.message-content:hover {
-  background-color: gainsboro;
+.message-container:hover {
+  background-color: rgb(0, 100, 200);
 }
 .options {
   position: absolute;
-  white-space: nowrap;
   bottom: 100%;
   z-index: 1;
+  white-space: nowrap;
 }
 .options-button {
-  font-size: 1rem;
-  font-family: sans-serif;
   margin-right: 0.5rem;
-  cursor: pointer;
-  border-radius: 0;
+  border: solid;
   border-color: black;
-  border-style: solid;
+  border-radius: 0;
+  font-size: 1rem;
+  cursor: pointer;
 }
 .options-button-delete {
-  font-size: 1rem;
-  font-family: sans-serif;
   margin-right: 0.5rem;
-  cursor: pointer;
-  border-radius: 0;
+  border: solid;
   border-color: darkred;
-  border-style: solid;
+  border-radius: 0;
+  font-size: 1rem;
   color: darkred;
+  cursor: pointer;
 }
 .emoji {
   position: absolute;
-  bottom: -0.5rem;
-  font-size: 0.9rem;
+  top: 0.9rem;
+  font-size: 1rem;
 }
 .forwarded {
   position: absolute;
   bottom: 100%;
   right: 0;
-  font-size: 0.9rem;
-  font-family: sans-serif;
-  font-weight: lighter;
-  background-color: whitesmoke;
   padding: 0.1rem 0.4rem;
+  background-color: rgb(0, 150, 250);
+  font-size: 0.9rem;
+  border-radius: 25%;
+  font-weight: lighter;
 }
 .send-footer {
   position: relative;
   padding: 0.2rem 0.2rem 0 0.2rem;
+  background-color: gainsboro;
 }
 .send-bar-wrapper {
   position: relative;
 }
 .send-bar {
   width: 100%;
-  box-sizing: border-box;
   height: 3rem;
+  box-sizing: border-box;
   border: 0.1rem solid black;
   outline: none;
-  font-size: 1rem;
   background-color: whitesmoke;
-  font-family: sans-serif;
-  font-size: 1.2rem;
   color: black;
-  padding-right: 7rem;
-}
-.send-photo-button {
-  position: absolute;
-  right: 0.5rem;
-  bottom: 0.3rem;
-  z-index: 1;
-}
-.send-bar {
-  width: 100%;
-  box-sizing: border-box;
-  height: 3rem;
-  border: 0.1rem solid black;
-  outline: none;
-  font-size: 1rem;
-  background-color: whitesmoke;
-  font-family: sans-serif;
   font-size: 1.2rem;
-  color: black;
 }
 .send-bar::placeholder {
-  font-family: sans-serif;
   font-size: 1.2rem;
   color: black;
   font-style: italic;
 }
 .send-photo-button {
-  width: fit-content;
-  height: fit-content;
-  margin-bottom: 0.3rem;
-  padding: 0.2rem 0.4rem;
-  background-color: whitesmoke;
-  border: 0.2rem solid black;
-  border-color: black;
-  color: black;
-  cursor: pointer;
-  font-family: sans-serif;
+  position: absolute;
+  right: 1rem;
+  top: 0.5rem;
+  z-index: 1;
+  width: 1.6rem;
+  height: 2rem;
   font-size: 1rem;
-}
-.send-photo-button:hover {
-  background-color: gainsboro;
+  cursor: pointer;
 }
 .check-icon {
   width: 0.9rem;
   height: 0.9rem;
-  vertical-align: sub;
   stroke: black;
-  fill: none;
   stroke-width: 2;
+  fill: none;
+  vertical-align: sub;
 }
 .settings-icon {
   width: 2rem;
   height: 2rem;
   margin-bottom: 3rem;
   stroke: black;
-  fill: none;
   stroke-width: 2;
   cursor: pointer;
-}
-.settings-icon:hover {
-  stroke: gray;
-  background-color: darkgrey;
-  border-radius: 50%;
 }
 </style>
