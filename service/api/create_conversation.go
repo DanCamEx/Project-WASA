@@ -11,18 +11,22 @@ import (
 
 // createConversation handles requests to create a new direct conversation between two users.
 func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+
+	// Decodes request body
 	creatorId := ctx.UserId
 	dec := NewStrictDecoder(r)
-	var conversationRequest struct {
+	var req struct {
 		Name            string `json:"name"`
 		ParticipantsIds []int  `json:"participantsIds"`
 		Category        string `json:"category"`
 	}
-	if err := dec.Decode(&conversationRequest); err != nil {
+	if err := dec.Decode(&req); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode createConversation request")
 		return
 	}
-	for _, participantId := range conversationRequest.ParticipantsIds {
+
+	// Loop through participant IDs to check if they exist or one of them is the creator.
+	for _, participantId := range req.ParticipantsIds {
 		if participantId == creatorId {
 			SendErrorResponse(w, ctx, http.StatusBadRequest, "creator cannot be a participant in the conversation")
 			return
@@ -37,7 +41,11 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 			return
 		}
 	}
-	var conversationResponse struct {
+
+	// Creates res struct and check conversation category to create the right conversation. If the category is direct,
+	// it also checks that there is exactly one participant and set the res conversation name and photo to the other user's info,
+	// depending on who made the request.
+	var res struct {
 		Id            int                    `json:"id"`
 		Name          string                 `json:"name"`
 		Photo         string                 `json:"photo"`
@@ -45,28 +53,30 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 		LatestMessage database.LatestMessage `json:"latestMessage"`
 	}
 	var err error
-	switch conversationRequest.Category {
-	case "group":
-		conversationResponse.Id, err = rt.db.CreateGrpConversation(creatorId, conversationRequest.ParticipantsIds, conversationRequest.Name)
+	if req.Category == "group" {
+		res.Category = "group"
+		res.Id, err = rt.db.CreateGrpConversation(creatorId, req.ParticipantsIds, req.Name)
 		if err != nil {
 			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create group conversation")
 			return
 		}
-	case "direct":
-		if len(conversationRequest.ParticipantsIds) != 1 {
+	}
+	if req.Category == direct {
+		res.Category = direct
+		if len(req.ParticipantsIds) != 1 {
 			SendErrorResponse(w, ctx, http.StatusBadRequest, "direct conversation must have exactly one participant")
 			return
 		}
-		conversationResponse.Id, err = rt.db.CreateDirConversation(creatorId, conversationRequest.ParticipantsIds[0])
+		res.Id, err = rt.db.CreateDirConversation(creatorId, req.ParticipantsIds[0])
 		if err != nil {
-			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create direct conversation")
+			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create conversation")
 			return
 		}
-		if conversationResponse.Id == 0 {
+		if res.Id == 0 {
 			SendErrorResponse(w, ctx, http.StatusConflict, "direct conversation between these users already exists")
 			return
 		}
-		otherUserId, err := rt.db.GetOtherContact(creatorId, conversationResponse.Id)
+		otherUserId, err := rt.db.GetOtherContact(creatorId, res.Id)
 		if err != nil {
 			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other contact in direct conversation")
 			return
@@ -76,14 +86,16 @@ func (rt *_router) createConversation(w http.ResponseWriter, r *http.Request, ps
 			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other user info in direct conversation")
 			return
 		}
-		conversationResponse.Name = otherUser.Name
-		conversationResponse.Photo = otherUser.Photo
+		res.Name = otherUser.Name
+		res.Photo = otherUser.Photo
 	}
+
+	// Sends response with created conversation data
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(conversationResponse); err != nil {
+	if err := json.NewEncoder(w).Encode(res); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode create conversation response")
 		return
 	}
-	ctx.Logger.Infof("conversation created with id: %d", conversationResponse.Id)
+	ctx.Logger.Infof("conversation created with id: %d", res.Id)
 }

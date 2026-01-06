@@ -7,14 +7,16 @@ servers:
 security:
   - userAuth: []
 tags:
-  - name: user
-    description: Operations about user
   - name: login
     description: Access operation
+  - name: user
+    description: Operations about user
   - name: conversation
     description: Operations about conversation
   - name: message
     description: Operations about message
+  - name: special
+    description: Other operations
 paths:
   /session:
     post:
@@ -22,8 +24,8 @@ paths:
       summary: Logs in the user
       description: |-
         If the user does not exist, it will be created,
-        and an identifier is returned.
-        If the user exists, the user identifier is returned.
+        and all user data is returned.
+        If the user exists, the user data is returned.
       operationId: doLogin
       requestBody:
         content:
@@ -32,116 +34,323 @@ paths:
               $ref: "#/components/schemas/UserName"
       responses:
         '201':
-          description: User log-in action successful
+          description: user log-in action successful
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserId"
+                $ref: "#/components/schemas/UserId" 
+        '400':
+          description: |-
+            One of:
+            - failed to decode login request
+            - failed to encode login response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to get or create user id
+            - user name can be min 3, max 16 and only contain letters, numbers, spaces, and special characters (_ . -)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
       security: []
-  /users/{userId}:
+  /users/search:
+    get:
+      tags: [user]
+      summary: Gets all users in the database.
+      description: Obtain all users data in the database containing each the id, the name, and the image
+      operationId: searchUsers
+      responses:
+        '200':
+          description: user search successful
+          content:
+            application/json:
+              schema:
+                type: object
+                description: The array containing all the users found.
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                    minItems: 0
+                    maxItems: 999999
+                example:
+                  users:
+                    - id: 1
+                      name: "Mario"
+                      photo: "9318319833-39812391-30918.png"
+                    - id: 2
+                      name: "Luigi"
+                      photo: "38912391289-3813891-3813.png"
+        '500':
+          description: |-
+            One of:
+            - failed to get users from database
+            - failed to encode users response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/me:
     patch:
       tags: [user]
       summary: Updates username
       description: Changes the logged in username with a new one.
       operationId: setMyUserName
-      parameters:
-        - $ref: "#/components/parameters/userId"
       requestBody:
         content:
           application/merge-patch+json:
             schema:
               $ref: "#/components/schemas/UserName"
       responses:
-        "200":
-          description: Username update successful
+        '200':
+          description: user name update successful
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
-  /users/{userId}/conversations:
+        '400':
+          description: user name can be min 3, max 16 and only contain letters, numbers, spaces, and special characters (_ . -)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '409':
+          description: another user with the same name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to set new user name
+            - failed to get updated user from database
+            - failed to encode updated user response
+            - failed to check user name in db
+            - failed to decode updateUserName request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/me/conversations:
     get:
       tags: [user]
-      summary: Gives all of the user conversations
+      summary: Gives all of the user conversations, if the conversation is direct, get the name and photo from the other contacted user, depending on who is doing the operation.
       description: |-
-        Gets a preview of all the user conversations. This preview includes
-        every attribute that a normal conversation has with the exception that
-        not all messages are obtained, just the latest one.
+        Gets all the user conversations, so for each one its id, name (which is the user name if its category is direct), photo (same as name), category (direct or group) and latest message content and timestamp.
       operationId: getMyConversations
-      parameters:
-        - $ref: "#/components/parameters/userId"
       responses:
-        "200":
-          description: Successfully operation
+        '200':
+          description: conversations got successfully
           content:
             application/json:
               schema:
                 type: object
-                description: |-
-                  Represents all the direct conversations started and the
-                  groups joined/created by the user.
+                description: The array with all the conversations inside.
                 properties:
                   conversations:
                     type: array
-                    items:
-                      $ref: "#/components/schemas/Conversation"
-                    description: The array with all the conversations inside.
                     minItems: 0
                     maxItems: 999999
+                    items:
+                      $ref: "#/components/schemas/Conversation"
                 example:
-                  conversations:
-                    - id: 324
-                      name: Soccer Group
-                      : https://example.com/.png
-                      type: group
-                      latestMessage:
-                        createdAt: 2025-11-03T17:30:00+01:00
-                        body: https://example.com/icon.png
-                    - id: 345
-                      name: Luca
-                      : https://example.com/.png
-                      type: direct
-                      latestMessage:
-                        createdAt: 2025-12-03T17:30:00+01:00
-                        body:
-                          id: 34
-                required: [conversations]
-  /users/{userId}/photo:
+                  - id: 324
+                    name: "Soccer Group"
+                    photo: 13812031280-291820-289172.png
+                    category: group
+                    latestMessage:
+                      content: image.svg
+                      timestamp: 2025-11-03T17:30:00+01:00
+                  - id: 345
+                    name: Luca
+                    photo: 819123108-9381908-29081901.jpg
+                    category: direct
+                    latestMessage:
+                      content: "Hi, how are you?"
+                      timestamp: 2025-11-03T17:30:00+01:00
+        '500':
+          description: |-
+            One of:
+            - failed db operation to get user conversations
+            - failed db operation to get other contact in direct conversation
+            - failed db operation to get other user info in direct conversation
+            - failed to encode the conversations response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags: [user]
+      summary: Creates a new conversation.
+      description: Adds a new conversation in db with no name and photo if category == direct, or with a default name "Nuovo Gruppo" and default photo if not specified"
+      operationId: createConversation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: 
+                  type: string
+                  pattern: ^[A-Za-z0-9 _.-]{3,16}$
+                  minLength: 3
+                  maxLength: 16
+                participantIds:
+                  type: array
+                  items:
+                    type: integer
+                category:
+                  type: string
+                  enum: ["direct", "group"]
+      responses:
+        '201':
+          description: conversation created
+          content: 
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        '400':
+          description: |-
+            One of:
+            - creator cannot be a participant in the conversation
+            - direct conversation must have exactly one participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '404':
+          description: participant user id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '409':
+          description: direct conversation between these users already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to decode createConversation request
+            - failed to check if participant user id exists
+            - failed to create group conversation
+            - failed to create direct conversation
+            - failed db operation to get other contact in direct conversation
+            - failed db operation to get other user info in direct conversation
+            - failed to encode create conversation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/me/photo:
     put:
       tags: [user]
       summary: Updates user profile 
       description: |-
-        Replaces profile  with the new one. Returns the
+        Replaces profile with the new one. Returns the
         user resource with the url inside updated.
       operationId: setMyPhoto
-      parameters:
-        - $ref: "#/components/parameters/userId"
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/Upload"
+              $ref: "#/components/schemas/Image"
       responses:
-        "200":
-          description: Photo uploaded successfully
+        '201':
+          description: user profile photo set/updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Filename"
+        '400':
+          description: |-
+            One of:
+            - failed to parse multipart form
+            - photo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to create photo file
+            - failed to copy uploaded photo file
+            - failed to set/update profile photo in db
+            - failed to encode filename response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/by_name/{name}:
+    get:
+      tags: [user]
+      summary: Get user by name.
+      description: Get user info by name, so its id, name and photo.
+      operationId: getUserByName
+      parameters:
+        - $ref: "#/components/parameters/userName"
+      responses:
+        '200':
+          description: user got successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
-  /users/{userId}/conversations/:
-    # TODO add POST to create a new conversation
-    delete:
-      tags: [conversation]
-      summary: Removes logged-in user from a group
-      description: |-
-        Deletes the participant resource associated with the user and the conversation in the path.
-        The conversation must be of type "group" to work.
-      operationId: leaveGroup
+        '400':
+          description: missing user identifier in path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to get user from database
+            - failed to encode user response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /users/by_id/{id}:
+    get:
+      tags: [user]
+      summary: Get user by id.
+      description: Get user info by id, so its id, name and photo.
+      operationId: getUserById
       parameters:
-        - $ref: "#/components/parameters/conversationId"
         - $ref: "#/components/parameters/userId"
       responses:
-        "204":
-          description: User removed successfully
+        '200':
+          description: user got successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
+          description: invalid user id in path, or failed parse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to get user from database
+            - failed to encode user response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /conversations/{conversationId}:
     parameters:
       - $ref: "#/components/parameters/conversationId"
@@ -151,14 +360,31 @@ paths:
       description: |-
         Returns the resource "conversation" with all its properties.
         See its schema for more info.
-      operationId: getConversationDetails
+      operationId: getConversation
       responses:
-        "200":
+        '200':
           description: Successfully operation
           content:
             application/json:
                 schema:
                   $ref: "#/components/schemas/Conversation"
+        '400':
+          description: invalid conversation id in path, or failed parse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to get conversation from database
+            - failed db operation to get other contact in direct conversation
+            - failed db operation to get other user info in direct conversation
+            - failed to encode conversation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     patch:
       tags: [conversation]
       summary: Updates/Creates group name
@@ -181,12 +407,33 @@ paths:
                   minLength: 3
                   maxLength: 16
       responses:
-        "200":
+        '200':
           description: Group name updated successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Conversation"
+        '400':
+          description: |-
+            One of:
+            - failed to get conversation id from path or invalid format
+            - conversation is not a group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500': 
+          description: |-
+            One of:
+            - failed to decode request
+            - failed to check if the conversation it's a group in the database
+            - failed to set new group name
+            - failed to get updated conversation from database
+            - failed to encode updated conversation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /conversations/{conversationId}/photo:
     put:
       tags: [conversation]
@@ -202,14 +449,39 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/Upload"
+              $ref: "#/components/schemas/Image"
       responses:
-        "200":
-          description: Photo uploaded successfully
+        '201':
+          description: group photo set/updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Conversation"
+                $ref: "#/components/schemas/Filename"
+        '400':
+          description: |-
+            One of:
+            - failed to get conversation id from path or invalid format
+            - conversation does not exist
+            - conversation is not a group
+            - failed to parse multipart form
+            - file not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to create photo file
+            - failed to copy uploaded photo file
+            - failed to set/update profile photo in db
+            - failed to encode filename response
+            - failed to check if the conversation exists in the databas
+            - failed to check if the conversation is a group in the database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /conversations/{conversationId}/messages:
     parameters:
       - $ref: "#/components/parameters/conversationId"
@@ -219,26 +491,21 @@ paths:
       description: |-
         Returns all the messages resources associated
         with the provided conversation.
-      operationId: getConversation
+      operationId: getMessages
       responses:
-        "200":
-          description: Successfully operation
+        '200':
+          description: messages got successfully
           content:
             application/json:
                 schema:
                   type: object
-                  description: Object containing all the messages
-                  required: [messageList]
+                  description: array of messages in json
                   properties:
-                    messageList:
+                    messages:
                       type: array
-                      description: The message list
                       items:
                         $ref: "#/components/schemas/Message"
-                      minItems: 0
-                      maxItems: 999999
                   example:
-                    messageList:
                       - id: 56
                         senderId:
                           id: 43
@@ -257,6 +524,24 @@ paths:
                         timestamp: 2023-01-23T12:37:00+01:00
                         status: received
                         isForwarded: true
+        '400':
+          description: invalid conversation id in path, or failed parse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to get messages from database
+            - failed to update message status
+            - failed to update message status
+            - failed to check if message is read by all
+            - failed to encode messages response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     post:
       tags: [conversation]
       summary: Sends a new message in a conversation
@@ -271,29 +556,53 @@ paths:
               type: object
               description: Object containing the message to send
               properties:
-                messageToSend:
+                content:
                   type: string
-                  description: It can be simple text, or the location of an  uploaded.
-                  anyOf:
-                    - title: text
-                      type: string
-                      pattern: .*
-                      minLength: 1
-                      maxLength: 100
-                    - title: 
-                      type: string
-                      format: url
-                      pattern: ^[a-zA-Z]+://.+$
-                      minLength: 8
-                      maxLength: 100
+                  description: It can be simple text, or photo filename.
+                  pattern: .*
+                  minLength: 1
+                  maxLength: 100
       responses:
-        "201":
+        '201':
           description: Message created successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
+        '400':
+          description: |-
+            One of:
+            - failed to get conversation id from path or invalid format
+            - conversation doesn't exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '404':
+          description: sender is not a participant of the conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to decode sendMessage request
+            - failed to check if conversation exists
+            - failed to check if sender is a participant of the conversation
+            - failed to create the message in the database
+            - failed to get participants of the conversation
+            - failed to add message status for a participant
+            - failed to update latest message in the database
+            - failed to retrieve the created message from the database
+            - failed to encode response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /conversations/{conversationId}/participants:
+    parameters:
+        - $ref: "#/components/parameters/conversationId"
     post:
       tags: [conversation]
       summary: Adds a user to a group
@@ -302,25 +611,181 @@ paths:
         id provided to the conversation.
         The conversation must be of type "group" to work.
       operationId: addToGroup
-      parameters:
-        - $ref: "#/components/parameters/conversationId"
       requestBody:
         content:
           application/json:
             schema:
-              type: object
-              description: Object containing the user id to add
-              properties:
-                userToAdd:
-                  $ref: "#/components/schemas/UserId"
+              $ref: "#/components/schemas/UserName"
       responses:
-        "201":
-          description: User added successfully
+        '200':
+          description: user added successfully
+        '400':
+          description: |-
+            One of:
+            - invalid group id
+            - user not found
+            - conversation is not a group
+            - user is already a participant in the group conversation
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to decode addToGroup request
+            - failed to get user by name
+            - failed to check if conversation is a group
+            - failed to check if user is already a participant
+            - failed to add user to group conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags: [conversation]
+      summary: Removes logged-in user from a group
+      description: |-
+        Deletes the participant resource associated with the user and the conversation in the path.
+        The conversation must be of type "group" to work.
+      operationId: leaveGroup
+      responses:
+        '204':
+          description: User removed successfully
+        '400':
+          description: |-
+            One of:
+            - invalid group id
+            - conversation is not a group
+            - user is not a participant in the group conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to check if conversation is a group
+            - failed to check if user is a participant
+            - failed to remove user from group conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /conversations/:conversationId/messages/image:
+    post:
+      tags: [conversation]
+      summary: adds an image into the server
+      description: upload a new image into the server, saving only its filename into the db. Used for sending images into the conversation.
+      operationId: uploadImage
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/Image"
+      responses:
+        '201':
+          description: image created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Filename"
+        '400':
+          description: |-
+            One of:
+            - invalid conversation id
+            - failed to parse multipart form
+            - file not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to create file
+            - failed to copy uploaded file
+            - failed to create image in db
+            - failed to get participants of the conversation
+            - failed to add image status for a participant
+            - failed to update latest image in the database
+            - failed to retrieve the created image from the database
+            - failed to encode response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /conversations/:conversationId/messages/:messageId:
+    delete:
+      tags: [message]
+      summary: Deletes a message
+      description: |-
+        Deletes a message resource.
+        Works only if the message is sent by the logged in user.
+      operationId: deleteMessage
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
+        - $ref: "#/components/parameters/messageId"
+      responses:
+        '204':
+          description: comment removed successfully
+        '400':
+          description: |-
+            One of:
+            - invalid message id in path, or failed parse
+            - invalid conversation id in path, or failed parse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '404':
+          description: message does not exist or does not belong to user
+          content:
+              application/json:
                 schema:
-                  $ref: "#/components/schemas/Participant"
-  /messages:
+                  $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to check if message exists in database
+            - failed to delete message
+            - failed to delete comments related to the message
+            - failed to get participants of the conversation
+            - failed to add message status for a participant
+            - failed to update latest message in the database
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+  /messages/:messageId:
+    get:
+      tags: [message]
+      summary: Get a message by id
+      description: Get all message info by id, like senderId, conversationId etc... See its schema for more info
+      operationId: getMessage
+      responses:
+        '200':
+          description: message got successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        '400':
+          description: invalid message id in path, or failed parse
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to get message
+            - failed to encode message response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /messages/:messageId/forward:
     post:
       tags: [message]
       summary: Forwards a message to another conversation
@@ -332,41 +797,85 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: Object containing the message id and the conversation id
-              properties:
-                forwardedForm:
-                  $ref: "#/components/schemas/MessageId"
-                destinationId:
-                  $ref: "#/components/schemas/ConversationId"
+              $ref: "#/components/schemas/ConversationId"
       responses:
         '201':
-          description: Message forwarded successfully
+          description: message forwarded successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
-  /messages/{messageId}:
-    delete:
-      tags: [message]
-      summary: Deletes a message
-      description: |-
-        Deletes a message resource.
-        Works only if the message is sent by the logged in user.
-      operationId: deleteMessage
-      parameters:
-        - $ref: "#/components/parameters/messageId"
-      responses:
-        "204":
-          description: Comment removed successfully
+        '400':
+          description: |-
+            One of:
+            - failed to decode forward message request
+            - could not convert message id in path to int or invalid format
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+        '404':
+          description: |-
+            One of:
+            - message does not exist
+            - conversation does not exist
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to check if message exists
+            - failed to check if conversation exists
+            - failed to forward message
+            - failed to get participants of the conversation
+            - failed to add message status for a participant
+            - failed to update latest message in the database
+            - failed to get forwarded message details
+            - failed to encode forward message response
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
   /messages/{messageId}/comments:
+    parameters:
+      - $ref: "#/components/parameters/messageId"
+    get:
+      tags: [message]
+      summary: Get all comments
+      description: Get all comments info by message id, so their reacterIds, messageIds and emojis
+      operationId: getComments
+      responses:
+        '200':
+          description: message got successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                description: The array of comments returned
+                items:
+                  $ref: "#/components/schemas/Comment"
+        '400':
+          description: invalid message id in path, or failed parse
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to get message
+            - failed to encode message response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     post:
       tags: [message]
       summary: Comments a message with an emoji
       description: Creates a new comment to an existing message and returns it.
       operationId: commentMessage
-      parameters:
-        - $ref: "#/components/parameters/messageId"
       requestBody:
         content:
           application/json:
@@ -389,26 +898,96 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Comment"
-  /messages/{messageId}/comments/:
+        '400':
+          description: |-
+            One of:
+            - invalid message id in path, or failed parse
+            - invalid emoji for comment
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+        '403':
+          description: user is not a participant of the conversation containing the message
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+        '404':
+          description: message does not exist
+          content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to decode commentMessage request
+            - failed to check if user is participant of the conversation containing the message
+            - failed to check if message exists
+            - failed to add comment to message
+            - failed to encode comment message response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     delete:
       tags: [message]
-      operationId: uncommentMessage
       summary: Deletes a comment
       description: |-
         Deletes a comment resource from an existing message.
         Works only if the comment is sent by the logged in user.
-      parameters:
-        - $ref: "#/components/parameters/messageId"
+      operationId: uncommentMessage
       responses:
         '204':
-          description: Comment removed successfully
+          description: comment removed successfully
+        '400':
+          description: invalid message id in path, or failed parse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '403':
+          description: user is not a participant of the conversation containing the message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '404':
+          description: message does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: |-
+            One of:
+            - failed to check if message exists
+            - failed to check if user is participant of the conversation containing the message
+            - failed to check if comment exists or belongs to commenter
+            - failed to remove comment from message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /images/:imageId:
+    get:
+      tags: [special]
+      summary: Gets an image
+      description: Get the file using the filename (or imageId)
+      operationId: getImage
+      parameters:
+        - $ref: "#/components/parameters/imageId"
+      responses:
+        '200':
+          description: image sent successfully
 components:
   schemas:
     UserId:
       type: object
       description: It's assigned to every user when he/she register.
       properties:
-        id:
+        userId:
           type: integer
           format: int64
           description: It's assigned to every user when he/she register.
@@ -424,7 +1003,7 @@ components:
         name:
           type: string
           description: It's chosen by the user when he/she log in. It can be changed.
-          pattern: .*
+          pattern: ^[A-Za-z0-9 _.-]{3,16}$
           minLength: 3
           maxLength: 16
       example:
@@ -435,20 +1014,20 @@ components:
         - $ref: "#/components/schemas/UserName"
         - type: object
           properties:
-            :
+            photo:
               type: string
               format: url
               description: The location of the profile  uploaded by the user.
       example:
         id: 32
         name: Mario
-        : https://example.com/.png
+        photo: https://example.com/.png
       required: [id, name, ]
     ConversationId:
       type: object
       description: It's unique and it's assigned to every conversation when it is started/created.
       properties:
-        id:
+        conversationId:
           type: integer
           format: int64
           description: It's unique and it's assigned to every conversation when it is started/created.
@@ -467,29 +1046,47 @@ components:
               description: |-
                 It can be the username of the person you are talking to,
                 or the group name chosen during its creation.
-            :
+            photo:
               type: string
               format: url
               description: |-
                 It will be your receiver  if it's a direct conversation,
                 or the chosen group  if it's a group conversation.
-            type:
+            category:
               type: string
               enum: [group, direct]
               description: |-
                 Represents if a conversation can be a group with more
                 than two participants or a direct one, with just two users.
-            latestMessage:
-              $ref: "#/components/schemas/MessageId"
+            latestMessageContent:
+              anyOf:
+                - title: text
+                  type: string
+                  pattern: .*
+                  minLength: 1
+                  maxLength: 100
+                - title: photo
+                  type: string
+                  format: url
+                  pattern: ^[a-zA-Z]+://.+$
+                  minLength: 8
+                  maxLength: 100
+              description: It can be simple text, or the location of an image uploaded.
+            latestMessageTimestamp:
+              type: string
+              format: date-time
+              description: The exact instant when the message is sent on the conversation.
+              minLength: 20
+              maxLength: 25
       example:
         id: 324
         name: Soccer Group
-        : https://example.com/.png
+        photo: https://example.com/.png
         type: group
         latestMessage:
           createdAt: 2025-11-03T17:30:00+01:00
           body: 435
-      required: [id, name, , type]
+      required: [id, name, type]
     MessageId:
       type: object
       description: It's unique and created when a message is sent or forwarded.
@@ -520,13 +1117,13 @@ components:
                     pattern: .*
                     minLength: 1
                     maxLength: 100
-                  - title: 
+                  - title: photo
                     type: string
                     format: url
                     pattern: ^[a-zA-Z]+://.+$
                     minLength: 8
                     maxLength: 100
-                description: It can be simple text, or the location of an  uploaded.
+                description: It can be simple text, or the location of an image uploaded.
               timestamp:
                 type: string
                 format: date-time
@@ -570,32 +1167,54 @@ components:
           id: 54
         emoji: 😋
       required: [reacterId, emoji]
-    Participant:
-      description: A link which connect a user to a conversation.
-      allOf:
-        - $ref: "#/components/schemas/UserId"
-        - type: object
-          properties:
-            isPartOf:
-              $ref: "#/components/schemas/ConversationId"
-      example:
-        id: 459
-        isPartOf: 32
-      required: [id, isPartOf]
-    Upload:
+    Image:
+      type: string
+      format: binary
+      description: The photo binary file, used for profile and group conversations.
+      minLength: 1
+      maxLength: 13981014 # 10MB circa
+    Filename:
       type: object
-      description: The way to upload an , used for profile and group s.
       properties:
-        uploaded:
+        fileName: 
           type: string
-          format: binary
-          description: The  binary file to upload, could be the profile , the group  etc...
+    Error: 
+      type: object
+      description: The error reponse structure used for every error response in the project.
+      properties:
+        status: 
+          type: string
+          description: The http standard status response
           minLength: 1
-          maxLength: 13981014 # 10MB circa
+          maxLength: 30
+        code:
+          type: integer
+          format: int64
+          description: The http standard code response
+          minimum : 1
+          maximum: 3
+        message:
+          type: string
+          minLength: 1
+          maxLength: 999999
       example:
-        uploaded: (binary  data)
-      required: [uploaded]
+        status: "Bad Request"
+        code: 400
+        message: "failed to decode the request body"
   parameters:
+    imageId:
+      in: path
+      name: filename
+      schema:
+        $ref: "#/components/schemas/Filename"
+      required: true
+    userName:
+      in: path
+      name: userName
+      description: It's chosen by the user when he/she log in. It can be changed.
+      schema: 
+        $ref: "#/components/schemas/UserName"
+      required: true
     userId:
       in: path
       name: userId

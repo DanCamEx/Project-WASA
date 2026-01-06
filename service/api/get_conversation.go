@@ -24,7 +24,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	if conversation.Category == "direct" {
+	if conversation.Category == direct {
 		otherUserId, err := rt.db.GetOtherContact(userId, (conversation).Id)
 		if err != nil {
 			SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other contact in direct conversation")

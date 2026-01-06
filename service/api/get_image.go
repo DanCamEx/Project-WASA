@@ -7,8 +7,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// get handles requests to retrieve an  by its filename
-func (rt *_router) get(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+// getImage handles requests to retrieve an image by its filename
+func (rt *_router) getImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	fileName := ps.ByName("imageId")
 	Path := "images/" + fileName
 	http.ServeFile(w, r, Path)

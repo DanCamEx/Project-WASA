@@ -117,7 +117,7 @@ const createGroup = async () => {
   try {
     const formData = new FormData();
     formData.append("photo", groupPhotoFile.value);
-    const res = await axios.patch(
+    const res = await axios.put(
       "/conversations/" + groupId.value + "/photo",
       formData
     );

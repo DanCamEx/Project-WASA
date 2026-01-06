@@ -13,11 +13,10 @@ import (
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	senderId := ctx.UserId
 	dec := NewStrictDecoder(r)
-	var sendMessageRequest struct {
+	var req struct {
 		Content string `json:"content"`
-		IsImage bool   `json:"isImage"`
 	}
-	err := dec.Decode(&sendMessageRequest)
+	err := dec.Decode(&req)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode sendMessage request")
 		return
@@ -46,7 +45,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		SendErrorResponse(w, ctx, http.StatusNotFound, "sender is not a participant of the conversation")
 		return
 	}
-	messageId, err := rt.db.CreateMessage(senderId, conversationId, sendMessageRequest.Content)
+	messageId, err := rt.db.CreateMessage(senderId, conversationId, req.Content)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create the message in the database")
 		return

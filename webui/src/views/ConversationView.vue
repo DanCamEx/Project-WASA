@@ -9,8 +9,11 @@
       class="conversation-photo"
       alt="Foto conversazione"
     />
-    <h1>{{ conversationInfo.name }}</h1>
-    <div v-if="conversationInfo.category == 'group'" style="margin-left: auto">
+    <h1 class="header-title">{{ conversationInfo.name }}</h1>
+    <div
+      v-if="conversationInfo.category == 'group'"
+      class="group-actions-container"
+    >
       <input
         v-model="newMemberName"
         type="text"
@@ -30,11 +33,11 @@
       />
     </div>
   </header>
-  <ul class="messages-container">
-    <li
+  <main class="main-container">
+    <div
       v-for="message in messages"
       :key="message.id"
-      :class="message.senderId == authId ? 'message-right' : 'message-left'"
+      class="message"
       :style="
         message.senderId == authId
           ? 'align-self: flex-end; margin-right: 0.5rem;'
@@ -49,7 +52,7 @@
       <span v-if="message.senderId == authId" class="message-timestamp">
         {{ formatTimestamp(message.timestamp) }}
       </span>
-      <span class="message-container"
+      <span class="message-content"
         ><img
           v-if="
             message.content.endsWith('.jpg') ||
@@ -145,31 +148,41 @@
         v-for="(comment, idx) in comments[message.id] || []"
         :key="message.id + '-' + comment.emoji"
         class="emoji"
-        :style="`left: ${idx * 1.1}rem;`"
+        :style="
+          message.senderId == authId
+            ? `right: ${idx * 1.1}rem; align-self: bottom;`
+            : `left: ${idx * 1.1}rem;`
+        "
       >
         {{ comment.emoji }}
       </span>
-      <span v-if="message.isForwarded == true" class="forwarded">
+      <span
+        v-if="message.isForwarded == true"
+        :style="
+          message.senderId == authId
+            ? 'right: 0; left: auto;'
+            : 'left: 0; right: auto;'
+        "
+        class="forwarded"
+      >
         Inoltrato
       </span>
-    </li>
-  </ul>
-  <footer class="send-footer">
-    <div class="send-bar-wrapper">
-      <input
-        v-model="messageToSend"
-        type="text"
-        placeholder="Scrivi un messaggio..."
-        class="send-bar"
-        @keyup.enter="sendMessage"
-      />
-      <label for="imageInput"
-        ><img
-          src="/icons/image.svg"
-          class="send-photo-button"
-          alt="Invia Immagine"
-      /></label>
     </div>
+  </main>
+  <footer class="send-footer">
+    <input
+      v-model="messageToSend"
+      type="text"
+      placeholder="Scrivi un messaggio..."
+      class="send-bar"
+      @keyup.enter="sendMessage"
+    />
+    <label for="imageInput"
+      ><img
+        src="/icons/image.svg"
+        class="send-photo-button"
+        alt="Invia Immagine"
+    /></label>
     <input
       id="imageInput"
       type="file"
@@ -190,6 +203,7 @@ import {
   formatTimestamp,
   isImageSet,
   getDefaultConversationImage,
+  startPolling,
 } from "../services/utilities.js";
 
 const serverUrl = __API_URL__;
@@ -329,6 +343,9 @@ const leaveGroup = async () => {
 onMounted(() => {
   getMessages(route.params.conversationId);
   getConversation(route.params.conversationId);
+  startPolling(() => {
+    getMessages(route.params.conversationId);
+  });
 });
 
 watch(
@@ -342,11 +359,32 @@ watch(
 
 <style scoped>
 .main-header {
+  position: sticky;
+  top: 0;
   display: flex;
-  height: 6rem;
+  gap: 0.75rem;
+  min-height: 6rem;
+  padding: 0 1rem;
   align-items: center;
   border-bottom: solid black;
   background-color: rgb(0, 150, 250);
+  z-index: 2;
+}
+.header-title {
+  margin: 0;
+  font-size: 1.6rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-actions-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 .conversation-photo {
   width: 80px;
@@ -376,7 +414,6 @@ watch(
 }
 .leave-group-button {
   height: 2rem;
-  margin-left: 1rem;
   border: solid black;
   background-color: red;
   color: black;
@@ -387,43 +424,44 @@ watch(
 .leave-group-button:hover {
   background-color: darkred;
 }
-.messages-container {
+.main-container {
   display: flex;
+  height: calc(100% - 9rem);
   flex-direction: column-reverse;
-  overflow-y: auto;
-  height: calc(100% - 9.5rem);
-  margin: 0;
-  padding: 0;
-  list-style-type: none;
+  overflow: auto;
   background-color: gainsboro;
 }
-.message-right,
-.message-left {
+.message {
   position: relative;
-  max-width: 60%;
+  display: flex;
+  gap: 0.5rem;
   margin: 1rem 0rem;
   word-break: break-word;
   cursor: pointer;
 }
 .message-timestamp {
-  margin-right: 0.5rem;
+  align-self: flex-end;
   font-size: 0.8rem;
+  white-space: nowrap;
 }
 .sender-name {
+  align-self: flex-end;
   margin-left: 0.5rem;
   white-space: nowrap;
   font-weight: bold;
   font-size: 0.95em;
 }
-.message-container {
+.message-content {
+  white-space: normal;
   position: relative;
   padding: 0.5rem 0.7rem 0.5rem 0.7rem;
   background-color: rgb(0, 150, 250);
 }
-.message-container:hover {
+.message-content:hover {
   background-color: rgb(0, 100, 200);
 }
 .options {
+  display: flex;
   position: absolute;
   bottom: 100%;
   z-index: 1;
@@ -448,36 +486,37 @@ watch(
 }
 .emoji {
   position: absolute;
-  top: 0.9rem;
+  top: 100%;
   font-size: 1rem;
 }
 .forwarded {
   position: absolute;
-  bottom: 100%;
+  bottom: 80%;
   right: 0;
   padding: 0.1rem 0.4rem;
   background-color: rgb(0, 150, 250);
   font-size: 0.9rem;
-  border-radius: 25%;
   font-weight: lighter;
 }
 .send-footer {
-  position: relative;
-  padding: 0.2rem 0.2rem 0 0.2rem;
+  position: sticky;
+  bottom: 0;
+  overflow: auto;
   background-color: gainsboro;
-}
-.send-bar-wrapper {
-  position: relative;
+  z-index: 1;
+  overflow: hidden;
 }
 .send-bar {
   width: 100%;
   height: 3rem;
-  box-sizing: border-box;
-  border: 0.1rem solid black;
   outline: none;
   background-color: whitesmoke;
   color: black;
+  resize: none;
+  overflow-y: auto;       
+  word-break: break-word;
   font-size: 1.2rem;
+  white-space: pre-wrap;
 }
 .send-bar::placeholder {
   font-size: 1.2rem;

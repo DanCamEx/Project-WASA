@@ -13,10 +13,10 @@ import (
 // addToGroup handles requests to add a user to a group conversation.
 func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	dec := NewStrictDecoder(r)
-	var addRequest struct {
+	var req struct {
 		UserName string `json:"userName"`
 	}
-	if err := dec.Decode(&addRequest); err != nil {
+	if err := dec.Decode(&req); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode addToGroup request")
 		return
 	}
@@ -26,7 +26,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid group id")
 		return
 	}
-	user, err := rt.db.GetUserByName(addRequest.UserName)
+	user, err := rt.db.GetUserByName(req.UserName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			SendErrorResponse(w, ctx, http.StatusBadRequest, "user not found")

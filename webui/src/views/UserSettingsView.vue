@@ -76,7 +76,7 @@ const updateUserPhoto = async (file) => {
   try {
     const formData = new FormData();
     formData.append("photo", file);
-    const res = await axios.patch(`/users/me/photo`, formData);
+    const res = await axios.put(`/users/me/photo`, formData);
     sessionStorage.setItem("userPhoto", res.data.fileName);
     userPhoto.value = res.data.fileName;
   } catch (error) {}

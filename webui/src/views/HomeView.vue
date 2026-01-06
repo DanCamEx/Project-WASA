@@ -161,6 +161,7 @@ onMounted(async () => {
 <style scoped>
 main {
   height: 100%;
+  overflow: auto;
   background-color: gainsboro;
 }
 .search-bar {

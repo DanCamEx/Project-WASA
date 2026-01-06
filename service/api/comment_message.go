@@ -13,10 +13,10 @@ import (
 func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	commenterId := ctx.UserId
 	dec := NewStrictDecoder(r)
-	var commentRequest struct {
+	var req struct {
 		Emoji string `json:"emoji"`
 	}
-	if err := dec.Decode(&commentRequest); err != nil {
+	if err := dec.Decode(&req); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode commentMessage request")
 		return
 	}
@@ -36,7 +36,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	if commentRequest.Emoji != "👍" && commentRequest.Emoji != "😂" && commentRequest.Emoji != "💀" && commentRequest.Emoji != "😭" && commentRequest.Emoji != "🔥" {
+	if req.Emoji != "👍" && req.Emoji != "😂" && req.Emoji != "💀" && req.Emoji != "😭" && req.Emoji != "🔥" {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "invalid emoji for comment")
 		return
 	}
@@ -51,20 +51,20 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	var emojiResponse struct {
-		SenderId  int    `json:"sender_id"`
-		MessageId int    `json:"message_id"`
+	var res struct {
+		SenderId  int    `json:"reacterId"`
+		MessageId int    `json:"messageId"`
 		Emoji     string `json:"emoji"`
 	}
-	emojiResponse.Emoji, err = rt.db.CreateComment(messageId, commenterId, commentRequest.Emoji)
+	res.Emoji, err = rt.db.CreateComment(messageId, commenterId, req.Emoji)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to add comment to message")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(emojiResponse)
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode comment message response")
 		return

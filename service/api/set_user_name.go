@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 
 	"github.com/DanCamEx/Project-WASA/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
@@ -10,26 +11,27 @@ import (
 
 // setMyUserName handles requests to set or update the authenticated user's name.
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+
+	// Gets user id from context and decodes request body
 	userId := ctx.UserId
 	dec := NewStrictDecoder(r)
-	var userName struct {
+	var req struct {
 		Name string `json:"name"`
 	}
-	err := dec.Decode(&userName)
+	err := dec.Decode(&req)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to decode updateUserName request")
 		return
 	}
-	if userName.Name == "" {
-		SendErrorResponse(w, ctx, http.StatusBadRequest, "user name cannot be empty")
-		return
-	}
-	if len(userName.Name) > 16 {
-		SendErrorResponse(w, ctx, http.StatusBadRequest, "user name cannot be longer than 16 characters")
+
+	// Checks if user name is valid
+	if regexp.MustCompile(`^[A-Za-z0-9 _.-]{3,16}$`).MatchString(req.Name) == false {
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "user name can be min 3, max 16 and only contain letters, numbers, spaces, and special characters (_ . -)")
 		return
 	}
 
-	exists, err := rt.db.CheckUserName(userName.Name)
+	// Check if another user in the db with the same name already exists
+	exists, err := rt.db.CheckUserName(req.Name)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check user name in db")
 		return
@@ -39,10 +41,13 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	if err = rt.db.SetUserName(userId, userName.Name); err != nil {
+	// Sets the new user name
+	if err = rt.db.SetUserName(userId, req.Name); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to set new user name")
 		return
 	}
+
+	// Get the user with the updated name and sends it as response
 	user, err := rt.db.GetUser(userId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get updated user from database")

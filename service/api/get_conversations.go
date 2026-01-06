@@ -10,14 +10,18 @@ import (
 
 // getMyConversations handles requests to retrieve all conversations for the authenticated user.
 func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+
+	// Get user id from context and get all conversations from db
 	userId := ctx.UserId
 	conversations, err := rt.db.GetAllUserConversations(userId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get user conversations")
 		return
 	}
+
+	// Loop through conversations to set name and photo for direct conversations using the other participant's info.
 	for i := range *conversations {
-		if (*conversations)[i].Category == "direct" {
+		if (*conversations)[i].Category == direct {
 			otherUserId, err := rt.db.GetOtherContact(userId, (*conversations)[i].Id)
 			if err != nil {
 				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed db operation to get other contact in direct conversation")
@@ -32,6 +36,8 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 			(*conversations)[i].Photo = otherUser.Photo
 		}
 	}
+
+	// Sends response with all conversations
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(conversations); err != nil {

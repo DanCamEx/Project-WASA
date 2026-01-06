@@ -12,10 +12,10 @@ import (
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	senderId := ctx.UserId
 	dec := NewStrictDecoder(r)
-	var forwardMessage struct {
+	var req struct {
 		ConversationId int `json:"conversationId"`
 	}
-	if err := dec.Decode(&forwardMessage); err != nil {
+	if err := dec.Decode(&req); err != nil {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "failed to decode forward message request")
 		return
 	}
@@ -35,7 +35,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		SendErrorResponse(w, ctx, http.StatusNotFound, "message does not exist")
 		return
 	}
-	exists, err = rt.db.CheckConversation(forwardMessage.ConversationId)
+	exists, err = rt.db.CheckConversation(req.ConversationId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to check if conversation exists")
 		return
@@ -44,12 +44,12 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		SendErrorResponse(w, ctx, http.StatusNotFound, "conversation does not exist")
 		return
 	}
-	newMessageId, err := rt.db.ForwardMessage(messageId, senderId, forwardMessage.ConversationId)
+	newMessageId, err := rt.db.ForwardMessage(messageId, senderId, req.ConversationId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to forward message")
 		return
 	}
-	participants, err := rt.db.GetParticipants(forwardMessage.ConversationId)
+	participants, err := rt.db.GetParticipants(req.ConversationId)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get participants of the conversation")
 		return
@@ -62,7 +62,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 			}
 		}
 	}
-	if err = rt.db.UpdateLatestMessage(forwardMessage.ConversationId); err != nil {
+	if err = rt.db.UpdateLatestMessage(req.ConversationId); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message in the database")
 		return
 	}
@@ -73,10 +73,10 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(message); err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode forward message response")
 		return
 	}
-	ctx.Logger.Infof("message %d forwarded successfully by user %d to conversation %d", messageId, senderId, forwardMessage.ConversationId)
+	ctx.Logger.Infof("message %d forwarded successfully by user %d to conversation %d", messageId, senderId, req.ConversationId)
 }

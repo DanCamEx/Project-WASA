@@ -25,7 +25,7 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 	file, handler, err := r.FormFile("image")
 	if err != nil {
-		SendErrorResponse(w, ctx, http.StatusBadRequest, "file non trovato")
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "file not found")
 		return
 	}
 	defer file.Close()
@@ -56,7 +56,7 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 
 	messageId, err := rt.db.CreateMessage(senderId, conversationId, filename)
 	if err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to set/update profile photo in db")
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to create image in db")
 		return
 	}
 
@@ -68,19 +68,19 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 	for _, participantId := range participants {
 		if participantId != senderId {
 			if err = rt.db.AddStatus(messageId, participantId); err != nil {
-				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to add message status for a participant")
+				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to add image status for a participant")
 				return
 			}
 		}
 	}
 	if err = rt.db.UpdateLatestMessage(conversationId); err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest message in the database")
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to update latest image in the database")
 		return
 	}
 
 	message, err := rt.db.GetMessage(messageId)
 	if err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to retrieve the created message from the database")
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to retrieve the created image from the database")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -89,5 +89,5 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode response")
 		return
 	}
-	ctx.Logger.Infof("message created with id: %d sent by user %d in conversation %d", messageId, senderId, conversationId)
+	ctx.Logger.Infof("image created with id: %d sent by user %d in conversation %d", messageId, senderId, conversationId)
 }

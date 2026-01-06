@@ -10,19 +10,21 @@ import (
 
 // getUserByName handles requests to get a user's information.
 func (rt *_router) getUserByName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+
+	// Gets user name from path and get user from db
 	userName := ps.ByName("name")
 	var err error
 	if userName == "" {
 		SendErrorResponse(w, ctx, http.StatusBadRequest, "missing user identifier in path")
 		return
 	}
-
 	user, err := rt.db.GetUserByName(userName)
 	if err != nil {
 		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get user from database")
 		return
 	}
 
+	// Sends response with user data
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(user); err != nil {

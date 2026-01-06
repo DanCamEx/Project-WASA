@@ -18,7 +18,7 @@ func (rt *_router) getMessage(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 	message, err := rt.db.GetMessage(messageId)
 	if err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to retrieve message")
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to get message")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

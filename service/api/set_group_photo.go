@@ -43,7 +43,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	}
 	file, handler, err := r.FormFile("photo")
 	if err != nil {
-		SendErrorResponse(w, ctx, http.StatusBadRequest, "file non trovato")
+		SendErrorResponse(w, ctx, http.StatusBadRequest, "file not found")
 		return
 	}
 	defer file.Close()
@@ -85,7 +85,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(fileNameRes); err != nil {
-		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode updated user response")
+		SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to encode filename response")
 		return
 	}
 	ctx.Logger.Infof("group conversation %d photo updated successfully", conversationId)

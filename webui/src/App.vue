@@ -103,6 +103,7 @@ textarea {
   align-self: center;
   font-size: 0.8rem;
   font-weight: bold;
+  white-space: nowrap;
 }
 .profile-photo {
   width: 40px;

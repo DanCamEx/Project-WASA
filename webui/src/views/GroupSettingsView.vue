@@ -79,7 +79,7 @@ const updateGroupPhoto = async (file) => {
   try {
     const formData = new FormData();
     formData.append("photo", file);
-    const res = await axios.patch(`/conversations/${conversationId}/photo`, formData);
+    const res = await axios.put(`/conversations/${conversationId}/photo`, formData);
     newPhoto.value = res.data.fileName;
   } catch (error) {}
 };
