@@ -8,7 +8,7 @@
       "
       class="conversation-photo"
       alt="Foto conversazione"
-    />
+    >
     <h1 class="header-title">{{ conversationInfo.name }}</h1>
     <div
       v-if="conversationInfo.category == 'group'"
@@ -19,7 +19,7 @@
         type="text"
         placeholder="Aggiungi membro..."
         class="add-to-group-input"
-      />
+      >
       <button class="add-to-group-button" @click="addToGroup">Aggiungi</button>
       <button class="leave-group-button" @click="leaveGroup">
         Esci dal gruppo
@@ -30,7 +30,7 @@
         @click="
           router.push('/conversations/' + conversationInfo.id + '/settings')
         "
-      />
+      >
     </div>
   </header>
   <main class="main-container">
@@ -52,32 +52,30 @@
       <span v-if="message.senderId == authId" class="message-timestamp">
         {{ formatTimestamp(message.timestamp) }}
       </span>
-      <span class="message-content"
-        ><img
-          v-if="
-            message.content.endsWith('.jpg') ||
-            message.content.endsWith('.png') ||
-            message.content.endsWith('.jpeg') ||
-            message.content.endsWith('.gif')
-          "
-          :src="serverUrl + '/images/' + message.content"
-          alt="Immagine inviata"
-          style="max-width: 300px; max-height: 300px"
-        />
+      <span class="message-content"><img
+                                      v-if="
+                                        message.content.endsWith('.jpg') ||
+                                          message.content.endsWith('.png') ||
+                                          message.content.endsWith('.jpeg') ||
+                                          message.content.endsWith('.gif')
+                                      "
+                                      :src="serverUrl + '/images/' + message.content"
+                                      alt="Immagine inviata"
+                                      style="max-width: 300px; max-height: 300px"
+                                    >
         <span v-else>
           {{ message.content }}
         </span>
         <template v-if="message.senderId == authId && message.status == 'sent'">
-          <img class="check-icon" src="/icons/check2.svg" />
+          <img class="check-icon" src="/icons/check2.svg">
         </template>
         <template
           v-else-if="message.senderId == authId && message.status == 'read'"
         >
-          <img class="check-icon" src="/icons/check2-all.svg" />
+          <img class="check-icon" src="/icons/check2-all.svg">
         </template>
       </span>
-      <span v-if="message.senderId != authId" class="sender-name"
-        >{{ sendersNames[message.senderId] || "" }} -
+      <span v-if="message.senderId != authId" class="sender-name">{{ sendersNames[message.senderId] || "" }} -
       </span>
       <span v-if="message.senderId != authId" class="message-timestamp">
         {{ formatTimestamp(message.timestamp) }}
@@ -176,20 +174,19 @@
       placeholder="Scrivi un messaggio..."
       class="send-bar"
       @keyup.enter="sendMessage"
-    />
-    <label for="imageInput"
-      ><img
-        src="/icons/image.svg"
-        class="send-photo-button"
-        alt="Invia Immagine"
-    /></label>
+    >
+    <label for="imageInput"><img
+      src="/icons/image.svg"
+      class="send-photo-button"
+      alt="Invia Immagine"
+    ></label>
     <input
       id="imageInput"
       type="file"
       hidden
       accept="image/*"
       @change="sendImage($event.target.files[0])"
-    />
+    >
   </footer>
 </template>
 
