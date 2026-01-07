@@ -26,7 +26,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/conversations/:conversationId/participants", rt.wrap(rt.addToGroup))
 	rt.router.DELETE("/conversations/:conversationId/participants", rt.wrap(rt.leaveGroup))
 	rt.router.PUT("/conversations/:conversationId/photo", rt.wrap(rt.setGroupPhoto))
-	rt.router.POST("/conversations/:conversationId/messages/image", rt.wrap(rt.uploadImage))
+	rt.router.POST("/conversations/:conversationId/images", rt.wrap(rt.uploadImage))
 	rt.router.DELETE("/conversations/:conversationId/messages/:messageId", rt.wrap(rt.deleteMessage))
 
 	// Message routes

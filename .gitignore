@@ -17,4 +17,5 @@ docker-compose.log
 
 database.db
 webapi
+/images/*
 

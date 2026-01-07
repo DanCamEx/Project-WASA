@@ -258,7 +258,7 @@ const sendImage = async (imageFile) => {
     const formData = new FormData();
     formData.append("image", imageFile);
     const res = await axios.post(
-      "/conversations/" + route.params.conversationId + "/messages/image",
+      "/conversations/" + route.params.conversationId + "/images",
       formData
     );
     messages.value.unshift(res.data);
