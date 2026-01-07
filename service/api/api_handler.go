@@ -15,8 +15,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/users/me/conversations", rt.wrap(rt.createConversation))
 	rt.router.GET("/users/me/conversations", rt.wrap(rt.getMyConversations))
 	rt.router.PUT("/users/me/photo", rt.wrap(rt.setMyPhoto))
-	rt.router.GET("/users/by-name/:name", rt.wrap(rt.getUserByName))
-	rt.router.GET("/users/by-id/:id", rt.wrap(rt.getUserById))
+	rt.router.GET("/users/by_name/:name", rt.wrap(rt.getUserByName))
+	rt.router.GET("/users/by_id/:id", rt.wrap(rt.getUserById))
 
 	// Conversation routes
 	rt.router.PATCH("/conversations/:conversationId", rt.wrap(rt.setGroupName))

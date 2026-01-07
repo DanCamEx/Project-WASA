@@ -94,7 +94,7 @@ const getParticipantsIds = async (names) => {
   participantsIds.value = [];
   for (const name of names.split(", ")) {
     try {
-      const res = await axios.get("/users/by-name/" + name);
+      const res = await axios.get("/users/by_name/" + name);
       participantsIds.value.push(res.data.id);
     } catch (error) {}
   }

@@ -280,7 +280,7 @@ const getSendersNames = async () => {
   ];
   for (const senderId of senderIds.value) {
     try {
-      const res = await axios.get("/users/by-id/" + senderId);
+      const res = await axios.get("/users/by_id/" + senderId);
       sendersNames.value[senderId] = res.data.name;
     } catch (error) {}
   }
