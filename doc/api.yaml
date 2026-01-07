@@ -61,7 +61,7 @@ paths:
   /users/search:
     get:
       tags: [user]
-      summary: Gets all users in the database.
+      summary: Gets all users in the database
       description: Obtain all users data in the database containing each the id, the name, and the image
       operationId: searchUsers
       responses:
@@ -75,17 +75,18 @@ paths:
                 properties:
                   users:
                     type: array
+                    description: The array of users returned
                     items:
                       $ref: "#/components/schemas/User"
                     minItems: 0
                     maxItems: 999999
                 example:
                   users:
-                    - id: 1
-                      name: "Mario"
+                    - userId: 1
+                      userName: "Mario"
                       photo: "9318319833-39812391-30918.png"
-                    - id: 2
-                      name: "Luigi"
+                    - userId: 2
+                      userName: "Luigi"
                       photo: "38912391289-3813891-3813.png"
         '500':
           description: |-
@@ -141,7 +142,7 @@ paths:
   /users/me/conversations:
     get:
       tags: [user]
-      summary: Gives all of the user conversations, if the conversation is direct, get the name and photo from the other contacted user, depending on who is doing the operation.
+      summary: Gives all of the user conversations, if the conversation is direct, get the name and photo from the other contacted user, depending on who is doing the operation
       description: |-
         Gets all the user conversations, so for each one its id, name (which is the user name if its category is direct), photo (same as name), category (direct or group) and latest message content and timestamp.
       operationId: getMyConversations
@@ -156,25 +157,27 @@ paths:
                 properties:
                   conversations:
                     type: array
+                    description: The array of conversations returned
                     minItems: 0
                     maxItems: 999999
                     items:
                       $ref: "#/components/schemas/Conversation"
                 example:
-                  - id: 324
-                    name: "Soccer Group"
-                    photo: 13812031280-291820-289172.png
-                    category: group
-                    latestMessage:
-                      content: image.svg
-                      timestamp: 2025-11-03T17:30:00+01:00
-                  - id: 345
-                    name: Luca
-                    photo: 819123108-9381908-29081901.jpg
-                    category: direct
-                    latestMessage:
-                      content: "Hi, how are you?"
-                      timestamp: 2025-11-03T17:30:00+01:00
+                  conversations:
+                    - conversationId: 324
+                      name: "Soccer Group"
+                      photo: 13812031280-291820-289172.png
+                      category: group
+                      latestMessage:
+                        content: image.svg
+                        timestamp: 2025-11-03T17:30:00+01:00
+                    - conversationId: 345
+                      name: Luca
+                      photo: 819123108-9381908-29081901.jpg
+                      category: direct
+                      latestMessage:
+                        content: "Hi, how are you?"
+                        timestamp: 2025-11-03T17:30:00+01:00
         '500':
           description: |-
             One of:
@@ -188,7 +191,7 @@ paths:
                 $ref: "#/components/schemas/Error"
     post:
       tags: [user]
-      summary: Creates a new conversation.
+      summary: Creates a new conversation
       description: Adds a new conversation in db with no name and photo if category == direct, or with a default name "Nuovo Gruppo" and default photo if not specified"
       operationId: createConversation
       requestBody:
@@ -196,18 +199,24 @@ paths:
           application/json:
             schema:
               type: object
+              description: Object containing the conversation to create
               properties:
                 name: 
                   type: string
+                  description: The group name, only if category is group
                   pattern: ^[A-Za-z0-9 _.-]{3,16}$
                   minLength: 3
                   maxLength: 16
                 participantIds:
                   type: array
+                  description: The array of user ids participating in the conversation
                   items:
                     type: integer
+                  minItems: 0
+                  maxItems: 999999
                 category:
                   type: string
+                  description: The conversation category, either direct or group
                   enum: ["direct", "group"]
       responses:
         '201':
@@ -294,7 +303,7 @@ paths:
   /users/by_name/{name}:
     get:
       tags: [user]
-      summary: Get user by name.
+      summary: Get user by name
       description: Get user info by name, so its id, name and photo.
       operationId: getUserByName
       parameters:
@@ -324,7 +333,7 @@ paths:
   /users/by_id/{id}:
     get:
       tags: [user]
-      summary: Get user by id.
+      summary: Get user by id
       description: Get user info by id, so its id, name and photo.
       operationId: getUserById
       parameters:
@@ -503,26 +512,30 @@ paths:
                   properties:
                     messages:
                       type: array
+                      description: The array of messages returned
                       items:
                         $ref: "#/components/schemas/Message"
+                      minItems: 0
+                      maxItems: 999999
                   example:
+                    messages:
                       - id: 56
                         senderId:
-                          id: 43
-                        conversationId:
-                          id: 40
+                          userId: 43
+                        chatId:
+                          conversationId: 40
                         content: Hello, how are you?
                         timestamp: 2025-11-03T17:30:00+01:00
                         status: read
                         isForwarded: false
                       - id: 98
                         senderId:
-                          id: 452
-                        conversationId:
-                          id: 73
+                          userId: 452
+                        chatId:
+                          conversationId: 73
                         content: https://example.com/.png
                         timestamp: 2023-01-23T12:37:00+01:00
-                        status: received
+                        status: sent
                         isForwarded: true
         '400':
           description: invalid conversation id in path, or failed parse
@@ -617,7 +630,7 @@ paths:
             schema:
               $ref: "#/components/schemas/UserName"
       responses:
-        '200':
+        '204':
           description: user added successfully
         '400':
           description: |-
@@ -672,12 +685,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /conversations/:conversationId/messages/image:
+  /conversations/{conversationId}/images:
     post:
       tags: [conversation]
       summary: adds an image into the server
       description: upload a new image into the server, saving only its filename into the db. Used for sending images into the conversation.
       operationId: uploadImage
+      parameters:
+        - $ref: "#/components/parameters/conversationId"
       requestBody:
         content:
           multipart/form-data:
@@ -715,7 +730,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /conversations/:conversationId/messages/:messageId:
+  /conversations/{conversationId}/messages/{messageId}:
     delete:
       tags: [message]
       summary: Deletes a message
@@ -757,12 +772,14 @@ paths:
               application/json:
                 schema:
                   $ref: "#/components/schemas/Error"
-  /messages/:messageId:
+  /messages/{messageId}:
     get:
       tags: [message]
       summary: Get a message by id
       description: Get all message info by id, like senderId, conversationId etc... See its schema for more info
       operationId: getMessage
+      parameters:
+        - $ref: "#/components/parameters/messageId"
       responses:
         '200':
           description: message got successfully
@@ -785,7 +802,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /messages/:messageId/forward:
+  /messages/{messageId}/forward:
     post:
       tags: [message]
       summary: Forwards a message to another conversation
@@ -793,11 +810,14 @@ paths:
         Copies only the body of the message with the id provided and sends it
         as a new message resource to the conversation with the id provided.
       operationId: forwardMessage
+      parameters:
+        - $ref: "#/components/parameters/messageId"
       requestBody:
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/ConversationId"
+        required: true
       responses:
         '201':
           description: message forwarded successfully
@@ -852,10 +872,30 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                description: The array of comments returned
-                items:
-                  $ref: "#/components/schemas/Comment"
+                type: object
+                description: array of comments in json
+                properties:
+                  comments:
+                    type: array
+                    description: The array of comments returned
+                    items:
+                      $ref: "#/components/schemas/Comment"
+                    minItems: 0
+                    maxItems: 999999
+                example:
+                  comments:
+                    - id: 12
+                      reacterId:
+                        userId: 45
+                      messageId:
+                        id: 67
+                      emoji: "👍"
+                    - id: 15
+                      reacterId:
+                        userId: 32
+                      messageId:
+                        id: 67
+                      emoji: "😂"
         '400':
           description: invalid message id in path, or failed parse
           content:
@@ -970,17 +1010,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /images/:imageId:
+  /images/{imageId}:
     get:
       tags: [special]
       summary: Gets an image
-      description: Get the file using the filename (or imageId)
+      description: Get the file using the imageId
       operationId: getImage
       parameters:
         - $ref: "#/components/parameters/imageId"
       responses:
         '200':
-          description: image sent successfully
+          description: image got successfully
+          content:
+            image/png:
+              schema:
+                type: string
+                description: The image file in png format
+                format: binary
+                example: <binary data>
+            image/jpeg:
+              schema:
+                type: string
+                description: The image file in jpeg format
+                format: binary
+                example: <binary data>
+            image/webp:
+              schema:
+                type: string
+                description: The image file in webp format
+                format: binary
+                example: <binary data>
 components:
   schemas:
     UserId:
@@ -994,20 +1053,20 @@ components:
           minimum: 1
           maximum: 999999
       example:
-        id: 32
-      required: [id]
+        userId: 32
+      required: [userId]
     UserName:
       type: object
       description: It's chosen by the user when he/she log in. It can be changed.
       properties:
-        name:
+        userName:
           type: string
           description: It's chosen by the user when he/she log in. It can be changed.
           pattern: ^[A-Za-z0-9 _.-]{3,16}$
           minLength: 3
           maxLength: 16
       example:
-        name: Mario
+        userName: Mario
     User:
       allOf:
         - $ref: "#/components/schemas/UserId"
@@ -1016,13 +1075,12 @@ components:
           properties:
             photo:
               type: string
-              format: url
-              description: The location of the profile  uploaded by the user.
+              description: The id of the profile image uploaded by the user.
       example:
-        id: 32
-        name: Mario
-        photo: https://example.com/.png
-      required: [id, name, ]
+        userId: 32
+        userName: Mario
+        photo: 123453929-93819032890-3918.png
+      required: [userId, userName, photo]
     ConversationId:
       type: object
       description: It's unique and it's assigned to every conversation when it is started/created.
@@ -1034,8 +1092,8 @@ components:
           minimum: 1
           maximum: 999999
       example:
-        id: 43
-      required: [id]
+        conversationId: 43
+      required: [conversationId]
     Conversation:
       allOf:
         - $ref: "#/components/schemas/ConversationId"
@@ -1048,7 +1106,6 @@ components:
                 or the group name chosen during its creation.
             photo:
               type: string
-              format: url
               description: |-
                 It will be your receiver  if it's a direct conversation,
                 or the chosen group  if it's a group conversation.
@@ -1079,14 +1136,14 @@ components:
               minLength: 20
               maxLength: 25
       example:
-        id: 324
+        conversationId: 324
         name: Soccer Group
         photo: https://example.com/.png
-        type: group
+        category: group
         latestMessage:
           createdAt: 2025-11-03T17:30:00+01:00
           body: 435
-      required: [id, name, type]
+      required: [conversationId, name, category]
     MessageId:
       type: object
       description: It's unique and created when a message is sent or forwarded.
@@ -1108,7 +1165,7 @@ components:
             properties:
               senderId:
                 $ref: "#/components/schemas/UserId"
-              conversationId:
+              chatId:
                 $ref: "#/components/schemas/ConversationId"
               content:
                 anyOf:
@@ -1142,12 +1199,12 @@ components:
       example:
         id: 56
         senderId: 43
-        conversationId: 40
+        chatId: 40
         content: Hello, how are you?
         timestamp: 2025-11-03T17:30:00+01:00
         status: read
         isForwarded: false
-      required: [senderId, conversationId, content, timestamp, status, isForwarded]
+      required: [senderId, chatId, content, timestamp, status, isForwarded]
     Comment:
       type: object
       description: Created when a user want to react to an existing message with an emoji.
@@ -1164,7 +1221,7 @@ components:
           maxLength: 10
       example:
         reacterId:
-          id: 54
+          userId: 54
         emoji: 😋
       required: [reacterId, emoji]
     Image:
@@ -1173,16 +1230,24 @@ components:
       description: The photo binary file, used for profile and group conversations.
       minLength: 1
       maxLength: 13981014 # 10MB circa
+      example: <binary data>
     Filename:
       type: object
+      description: The filename generated when an image is uploaded into the server.
       properties:
         fileName: 
           type: string
+          description: The filename generated when an image is uploaded into the server.
+          pattern: '^.*\.(png|jpg|jpeg|webp)$'
+          minLength: 1
+          maxLength: 99
+      example:
+        fileName: 123453929-93819032890-3918.png
     Error: 
       type: object
       description: The error reponse structure used for every error response in the project.
       properties:
-        status: 
+        errorStatus: 
           type: string
           description: The http standard status response
           minLength: 1
@@ -1192,32 +1257,34 @@ components:
           format: int64
           description: The http standard code response
           minimum : 1
-          maximum: 3
+          maximum: 999
         message:
           type: string
+          description: The detailed error message
           minLength: 1
           maxLength: 999999
       example:
-        status: "Bad Request"
+        errorStatus: "Bad Request"
         code: 400
         message: "failed to decode the request body"
   parameters:
     imageId:
       in: path
-      name: filename
+      name: imageId
+      description: The id of the image file stored in the server.
       schema:
         $ref: "#/components/schemas/Filename"
       required: true
     userName:
       in: path
-      name: userName
+      name: name
       description: It's chosen by the user when he/she log in. It can be changed.
       schema: 
         $ref: "#/components/schemas/UserName"
       required: true
     userId:
       in: path
-      name: userId
+      name: id
       description: It's assigned to every user when he/she register.
       schema:
         $ref: "#/components/schemas/UserId"
