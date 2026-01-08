@@ -18,8 +18,12 @@ export function formatTimestamp(timestamp) {
 	return formattedDate;
 }
 
-export async function startPolling(method) {
-  setInterval(async () => {
+export function startPolling(method) {
+  return setInterval(async () => {
     method();
   }, 10000);
+}
+
+export function stopPolling(pollingId) {
+  clearInterval(pollingId);
 }

@@ -191,20 +191,21 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import axios from "../services/axios.js";
-import router from "../router/index.js";
 import { userAuthId } from "../services/auth.js";
 import {
   formatTimestamp,
   isImageSet,
   getDefaultConversationImage,
   startPolling,
+  stopPolling,
 } from "../services/utilities.js";
 
 const serverUrl = __API_URL__;
 const route = useRoute();
+const router = useRouter();
 const messageToSend = ref("");
 const authId = userAuthId;
 
@@ -314,7 +315,8 @@ const getComments = async (messageId) => {
 };
 
 const forwardMessage = async (id) => {
-  router.push("/messages/" + id + "/forward");
+  stopPolling(pollingValue.value);
+  router.push("/conversations/" + route.params.conversationId + "/messages/" + id + "/forward");
 };
 
 const newMemberName = ref("");
@@ -337,12 +339,20 @@ const leaveGroup = async () => {
     router.push("/home");
   } catch (error) {}
 };
+
+const pollingValue = ref(null);
 onMounted(() => {
   getMessages(route.params.conversationId);
   getConversation(route.params.conversationId);
-  startPolling(() => {
+  pollingValue.value = startPolling(() => {
     getMessages(route.params.conversationId);
   });
+});
+
+onUnmounted(() => {
+  if (pollingValue.value != null) {
+    stopPolling(pollingValue.value);
+  }
 });
 
 watch(

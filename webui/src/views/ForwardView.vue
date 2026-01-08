@@ -104,7 +104,10 @@ main {
   width: 62.95vw;
   height: calc(100vh - 3.7rem);
   background: rgba(0, 0, 0, 0.6);
-  z-index: 1;
+  z-index: 3;
+}
+.forward-title {
+  margin-left: 1rem;
 }
 .return-button {
   margin-left: 18.5rem;

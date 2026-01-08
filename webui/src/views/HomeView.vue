@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import axios from "../services/axios.js";
 import {
@@ -93,6 +93,7 @@ import {
   getDefaultConversationImage,
   formatTimestamp,
   startPolling,
+  stopPolling,
 } from "../services/utilities.js";
 
 const router = useRouter();
@@ -151,10 +152,17 @@ const getConversations = async () => {
   } catch (error) {}
 };
 
+const pollingValue = ref(null);
 onMounted(async () => {
   await getConversations();
   await getAllUsers();
-  startPolling(getConversations);
+  pollingValue.value = startPolling(getConversations);
+});
+
+onUnmounted(() => {
+  if (pollingValue.value != null) {
+    stopPolling(pollingValue.value);
+  }
 });
 </script>
 

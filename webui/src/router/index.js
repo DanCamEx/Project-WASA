@@ -27,7 +27,7 @@ const router = createRouter({
 			},
 		},
 		{
-			path: "/messages/:messageId/forward",
+			path: "/conversations/:conversationId/messages/:messageId/forward",
 			components: {
 				left: ForwardView,
 				right: ConversationView,
