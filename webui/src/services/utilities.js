@@ -19,7 +19,7 @@ export function formatTimestamp(timestamp) {
 }
 
 export function startPolling(method) {
-  return setInterval(async () => {
+  return setInterval(() => {
     method();
   }, 10000);
 }

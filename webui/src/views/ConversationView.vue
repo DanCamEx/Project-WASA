@@ -315,7 +315,6 @@ const getComments = async (messageId) => {
 };
 
 const forwardMessage = async (id) => {
-  stopPolling(pollingValue.value);
   router.push("/conversations/" + route.params.conversationId + "/messages/" + id + "/forward");
 };
 
@@ -360,7 +359,7 @@ watch(
   (newConversationId) => {
     getMessages(newConversationId);
     getConversation(newConversationId);
-  }
+  },
 );
 </script>
 

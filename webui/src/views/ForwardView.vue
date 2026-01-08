@@ -8,7 +8,7 @@
         :key="conversation.id"
         class="conversation"
         @click="
-          getConversation(conversation.id), forwardMessage(conversation.id)
+          forwardMessage(conversation.id), getConversation(conversation.id)
         "
       >
         <span class="conversation-photo">

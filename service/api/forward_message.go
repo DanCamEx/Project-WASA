@@ -56,7 +56,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 	for _, userId := range participants {
 		if userId != senderId {
-			if err = rt.db.AddStatus(messageId, userId); err != nil {
+			if err = rt.db.AddStatus(newMessageId, userId); err != nil {
 				SendErrorResponse(w, ctx, http.StatusInternalServerError, "failed to add message status for a participant")
 				return
 			}
