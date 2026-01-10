@@ -153,15 +153,18 @@ const getConversations = async () => {
 };
 
 const pollingValue = ref(null);
+const pollingValue2 = ref(null);
 onMounted(async () => {
   await getConversations();
   await getAllUsers();
   pollingValue.value = startPolling(getConversations);
+  pollingValue2.value = startPolling(getAllUsers);
 });
 
 onUnmounted(() => {
   if (pollingValue.value != null) {
     stopPolling(pollingValue.value);
+    stopPolling(pollingValue2.value);
   }
 });
 </script>
